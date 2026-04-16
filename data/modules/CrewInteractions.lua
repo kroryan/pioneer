@@ -110,6 +110,39 @@ local function getCrewMembers()
 	return crew
 end
 
+-- Ship computer comments for solo pilots
+local COMPUTER_COMMENTS = {
+	"All systems nominal, Commander. Ship computer standing by.",
+	"Running automated diagnostics... all within parameters.",
+	"Sensors clear. No contacts detected.",
+	"Fuel reserves stable. Route calculations up to date.",
+	"Navigation beacon sync complete. Star charts updated.",
+	"Automated maintenance cycle complete. Hull integrity nominal.",
+	"Monitoring local comms. Nothing of note, Commander.",
+}
+
+local COMPUTER_DANGER = {
+	"WARNING: High lawlessness detected in this system. Recommend caution.",
+	"ALERT: System threat level elevated. Shields recommended.",
+	"NOTICE: Crime index above normal. Monitoring for hostiles.",
+}
+
+local COMPUTER_DOCKED = {
+	"Docking complete. Running post-flight diagnostics.",
+	"Station services available. Refuelling in progress.",
+	"Secure dock confirmed. Systems in standby mode.",
+}
+
+local function doComputerComment()
+	if Game.system and Game.system.lawlessness > 0.4 and Engine.rand:Number(1.0) < 0.4 then
+		local msg = COMPUTER_DANGER[Engine.rand:Integer(1, #COMPUTER_DANGER)]
+		Comms.Message(msg, "Ship Computer")
+	else
+		local msg = COMPUTER_COMMENTS[Engine.rand:Integer(1, #COMPUTER_COMMENTS)]
+		Comms.Message(msg, "Ship Computer")
+	end
+end
+
 local function interpolateMsg(msg, vars)
 	return (msg:gsub("{(%w+)}", function(key) return vars[key] or key end))
 end
@@ -174,8 +207,13 @@ local function doInteraction()
 	if Game.player.flightState == "HYPERSPACE" then return end
 
 	local crew = getCrewMembers()
-	-- Solo pilot gets no crew interactions
-	if #crew == 0 then return end
+	-- Solo pilot gets ship computer interactions
+	if #crew == 0 then
+		doComputerComment()
+		state.interaction_count = state.interaction_count + 1
+		state.last_interaction_time = Game.time
+		return
+	end
 
 	local roll = Engine.rand:Number(1.0)
 
@@ -235,29 +273,39 @@ end)
 Event.Register("onPlayerDocked", function(ship, station)
 	-- Docked comment
 	local crew = getCrewMembers()
-	if #crew > 0 and Engine.rand:Number(1.0) < 0.5 then
-		local member = crew[Engine.rand:Integer(1, #crew)]
-		local msg = DOCKED_COMMENTS[Engine.rand:Integer(1, #DOCKED_COMMENTS)]
-		Comms.Message(msg, member.name)
+	if Engine.rand:Number(1.0) < 0.5 then
+		if #crew > 0 then
+			local member = crew[Engine.rand:Integer(1, #crew)]
+			local msg = DOCKED_COMMENTS[Engine.rand:Integer(1, #DOCKED_COMMENTS)]
+			Comms.Message(msg, member.name)
+		else
+			local msg = COMPUTER_DOCKED[Engine.rand:Integer(1, #COMPUTER_DOCKED)]
+			Comms.Message(msg, "Ship Computer")
+		end
 	end
 end)
 
 Event.Register("onEnterSystem", function(ship)
 	if not ship or not ship:isa("Ship") or not ship.IsPlayer or not ship:IsPlayer() then return end
 
-	local crew = getCrewMembers()
-	if #crew == 0 then return end
-
 	local system = Game.system
 	if not system then return end
 
 	-- Comment on entering a dangerous system
 	if system.lawlessness > 0.6 and Engine.rand:Number(1.0) < DANGER_COMMENT_CHANCE then
-		local member = crew[Engine.rand:Integer(1, #crew)]
-		Comms.ImportantMessage(
-			string.format("Heads up, Commander. %s has a reputation. Keep weapons hot.", system.name),
-			member.name
-		)
+		local crew = getCrewMembers()
+		if #crew > 0 then
+			local member = crew[Engine.rand:Integer(1, #crew)]
+			Comms.ImportantMessage(
+				string.format("Heads up, Commander. %s has a reputation. Keep weapons hot.", system.name),
+				member.name
+			)
+		else
+			Comms.ImportantMessage(
+				string.format("WARNING: %s has elevated threat level. Recommend caution.", system.name),
+				"Ship Computer"
+			)
+		end
 	end
 end)
 
@@ -300,6 +348,10 @@ Serializer:Register("CrewInteractions",
 -- Public API
 CrewInteractions.GetMorale = function() return state.crew_morale end
 CrewInteractions.GetInteractionCount = function() return state.interaction_count end
+CrewInteractions.GetCrewCount = function()
+	local crew = getCrewMembers()
+	return #crew + 1  -- +1 for the player (Commander)
+end
 
 print("[CrewInteractions] Module loaded - Crew dialogue system active")
 

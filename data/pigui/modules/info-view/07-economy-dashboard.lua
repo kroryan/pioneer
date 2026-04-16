@@ -190,15 +190,20 @@ local function drawDashboard()
 				drawSection("ACTIVE SYSTEM EVENTS", function()
 					local rows = {
 						separated = false,
-						{ "Event", "Severity", font = orbiteer.body },
+					{ "Event", "Severity", "Duration", font = orbiteer.body },
 					}
 					for _, evt in pairs(data.system_events) do
-						local name = evt.type or "Unknown"
+						local name = evt.name or "Unknown"
 						local severity = evt.severity and string.format("%.0f%%", evt.severity * 100) or "?"
-						table.insert(rows, { name, severity })
+						local remaining = ""
+						if evt.end_time and Game.time then
+							local hours = math.max(0, math.floor((evt.end_time - Game.time) / 3600))
+							remaining = tostring(hours) .. "h left"
+						end
+						table.insert(rows, { name, severity, remaining })
 					end
 					ui.withStyleVars({ItemSpacing = itemSpacing}, function()
-						textTable.drawTable(2, nil, rows)
+						textTable.drawTable(3, nil, rows)
 					end)
 				end)
 			end
@@ -258,6 +263,14 @@ local function drawDashboard()
 			ui.withStyleVars({ItemSpacing = itemSpacing}, function()
 				textTable.drawTable(2, nil, rows)
 			end)
+			ui.spacing()
+			ui.textColored(colors.alertYellow or colors.white, "HOW EXPLORATION WORKS:")
+			ui.textWrapped(
+				"Jump to new star systems to automatically record scan data and earn a first-visit bonus of $250. " ..
+				"Sell data at any station via the Explorers' Guild on the Bulletin Board. " ..
+				"High-tech stations pay more. Distant systems are worth more. " ..
+				"Milestones: Pathfinder (10), Scout (25), Explorer (50), Trailblazer (100), Vanguard (250), Pioneer (500)."
+			)
 		end)
 
 		-- ACTIVE BOUNTIES
@@ -337,13 +350,13 @@ local function drawDashboard()
 		-- CREW STATUS
 		drawSection("CREW STATUS", function()
 			ui.text("Morale: " .. tostring(data.crew_morale) .. "%")
-			local crewCount = 0
+			local crewCount = 1 -- Commander (player)
 			pcall(function()
 				Game.player:EachCrewMember(function(m)
 					if m and not m.player then crewCount = crewCount + 1 end
 				end)
 			end)
-			ui.text("Crew members: " .. tostring(crewCount))
+			ui.text("Crew: " .. tostring(crewCount) .. " (including Commander)")
 		end)
 	end)
 end

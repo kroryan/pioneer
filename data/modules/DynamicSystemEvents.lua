@@ -181,16 +181,23 @@ local MAX_EVENTS_PER_SYSTEM = 2
 -- STATE
 -- ============================================================================
 
--- {system_path -> { event_id -> event_data }}
+-- {system_key_string -> { event_id -> event_data }}
 local active_events = {}
 local event_id_counter = 0
 
--- {station_path -> {commodity_name -> {price, stock, supply, demand}}}
+-- {station_path_string -> {commodity_name -> {price, stock, supply, demand}}}
 -- Temporary cache of original values while docked (not serialized)
 local price_cache = {}
 
 -- BB advert references for cleanup
 local bb_ads = {}
+
+-- Convert SystemPath to stable string key for serialization
+local function PathKey(path)
+	if type(path) == "string" then return path end
+	if not path then return "?" end
+	return string.format("%d,%d,%d:%d", path.sectorX, path.sectorY, path.sectorZ, path.systemIndex)
+end
 
 -- ============================================================================
 -- HELPERS
@@ -212,10 +219,10 @@ local function ApplySeverity(base_mult, severity)
 end
 
 -- Count events for a system
-local function CountSystemEvents(system_path)
-	if not active_events[system_path] then return 0 end
+local function CountSystemEvents(sys_key)
+	if not active_events[sys_key] then return 0 end
 	local n = 0
-	for _ in pairs(active_events[system_path]) do n = n + 1 end
+	for _ in pairs(active_events[sys_key]) do n = n + 1 end
 	return n
 end
 
@@ -227,29 +234,29 @@ local function GenerateEvents()
 	if not Game.system then return end
 
 	local sys = Game.system
-	local sys_path = sys.path
+	local sys_key = PathKey(sys.path)
 
-	if not active_events[sys_path] then
-		active_events[sys_path] = {}
+	if not active_events[sys_key] then
+		active_events[sys_key] = {}
 	end
 
 	-- Remove expired events
 	local to_remove = {}
-	for eid, ev in pairs(active_events[sys_path]) do
+	for eid, ev in pairs(active_events[sys_key]) do
 		if ev.end_time <= Game.time then
 			table.insert(to_remove, eid)
 		end
 	end
 	for _, eid in ipairs(to_remove) do
-		active_events[sys_path][eid] = nil
+		active_events[sys_key][eid] = nil
 	end
 
 	-- Don't exceed maximum
-	if CountSystemEvents(sys_path) >= MAX_EVENTS_PER_SYSTEM then return end
+	if CountSystemEvents(sys_key) >= MAX_EVENTS_PER_SYSTEM then return end
 
 	-- Roll for each event type
 	for type_key, etype in pairs(EventTypes) do
-		if CountSystemEvents(sys_path) >= MAX_EVENTS_PER_SYSTEM then break end
+		if CountSystemEvents(sys_key) >= MAX_EVENTS_PER_SYSTEM then break end
 
 		-- Check conditions
 		local cond_ok = true
@@ -261,7 +268,7 @@ local function GenerateEvents()
 
 		-- Check if this event type is already active
 		local already_active = false
-		for _, ev in pairs(active_events[sys_path]) do
+		for _, ev in pairs(active_events[sys_key]) do
 			if ev.type_key == type_key then already_active = true; break end
 		end
 		if already_active then goto continue end
@@ -272,7 +279,7 @@ local function GenerateEvents()
 			local sev = Engine.rand:Number(etype.severity_range[1], etype.severity_range[2])
 			local dur = Engine.rand:Number(etype.duration_range[1], etype.duration_range[2])
 
-			active_events[sys_path][event_id_counter] = {
+			active_events[sys_key][event_id_counter] = {
 				id = event_id_counter,
 				type_key = type_key,
 				name = etype.name,
@@ -281,7 +288,7 @@ local function GenerateEvents()
 				start_time = Game.time,
 				end_time = Game.time + dur * 3600,
 				severity = sev,
-				system_path = sys_path,
+				system_key = sys_key,
 			}
 		end
 
@@ -296,12 +303,12 @@ end
 
 local function ApplyEffectsAtStation(station)
 	if not Game.system then return end
-	local sys_path = Game.system.path
-	local events = active_events[sys_path]
+	local sys_key = PathKey(Game.system.path)
+	local events = active_events[sys_key]
 	if not events then return end
 
-	local station_path = station.path
-	price_cache[station_path] = price_cache[station_path] or {}
+	local sta_key = PathKey(station.path)
+	price_cache[sta_key] = price_cache[sta_key] or {}
 
 	for _, ev in pairs(events) do
 		local etype = EventTypes[ev.type_key]
@@ -312,12 +319,12 @@ local function ApplyEffectsAtStation(station)
 			if not commodity then goto next_effect end
 
 			-- Only save original once per commodity per dock session
-			if not price_cache[station_path][eff.cargo] then
+			if not price_cache[sta_key][eff.cargo] then
 				local ok1, price = pcall(function() return station:GetCommodityPrice(commodity) end)
 				local ok2, market = pcall(function() return station:GetCommodityMarket() end)
 				if ok1 and ok2 and market then
 					local id = commodity.name
-					price_cache[station_path][eff.cargo] = {
+					price_cache[sta_key][eff.cargo] = {
 						price  = price,
 						stock  = market.stock[id] or 0,
 						supply = market.supply[id] or 0,
@@ -327,7 +334,7 @@ local function ApplyEffectsAtStation(station)
 			end
 
 			-- Apply severity-scaled effects
-			local cached = price_cache[station_path][eff.cargo]
+			local cached = price_cache[sta_key][eff.cargo]
 			if cached then
 				local pm = ApplySeverity(eff.price_mult, ev.severity)
 				local sm = ApplySeverity(eff.stock_mult, ev.severity)
@@ -355,8 +362,8 @@ local function ApplyEffectsAtStation(station)
 end
 
 local function RestoreEffectsAtStation(station)
-	local station_path = station.path
-	local cached = price_cache[station_path]
+	local sta_key = PathKey(station.path)
+	local cached = price_cache[sta_key]
 	if not cached then return end
 
 	for cargo_name, orig in pairs(cached) do
@@ -367,7 +374,7 @@ local function RestoreEffectsAtStation(station)
 		end
 	end
 
-	price_cache[station_path] = nil
+	price_cache[sta_key] = nil
 end
 
 -- ============================================================================
@@ -376,7 +383,7 @@ end
 
 local function AddEventAdverts(station)
 	if not Game.system then return end
-	local events = active_events[Game.system.path]
+	local events = active_events[PathKey(Game.system.path)]
 	if not events then return end
 
 	for eid, ev in pairs(events) do
@@ -436,7 +443,7 @@ Event.Register("onGameStart", function()
 	price_cache = {}
 	bb_ads = {}
 	GenerateEvents()
-	Timer:CallEvery(30 * 60, function()
+	Timer:CallEvery(10 * 60, function()
 		if Game.system then GenerateEvents() end
 	end)
 end)
@@ -483,7 +490,7 @@ Serializer:Register("DynamicSystemEvents",
 
 function DynamicSystemEvents.GetSystemEvents()
 	if not Game.system then return {} end
-	return active_events[Game.system.path] or {}
+	return active_events[PathKey(Game.system.path)] or {}
 end
 
 function DynamicSystemEvents.GetAllEvents()

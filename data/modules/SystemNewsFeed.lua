@@ -128,22 +128,92 @@ local function generateNews()
 
 	local news = {}
 
-	-- Check for DynamicSystemEvents integration
+	-- DynamicSystemEvents integration — react to live events
 	local dseOk, DSE = pcall(require, 'modules.DynamicSystemEvents')
-	if dseOk and DSE and DSE.GetActiveEvents then
-		local events = DSE.GetActiveEvents()
-		if events then
+	if dseOk and DSE and DSE.GetSystemEvents then
+		local ok, events = pcall(function() return DSE.GetSystemEvents() end)
+		if ok and events then
 			for _, evt in pairs(events) do
-				local evtType = evt.type and evt.type:lower() or nil
+				local evtType = evt.type_key and evt.type_key:lower() or nil
 				if evtType and TEMPLATES[evtType] then
 					local templates = TEMPLATES[evtType]
 					local t = templates[Engine.rand:Integer(1, #templates)]
+					local remaining = math.max(0, (evt.end_time or 0) - (Game.time or 0))
+					local hours = math.floor(remaining / 3600)
+					local severity_pct = math.floor((evt.severity or 0) * 100)
+					local evtVars = {}
+					for k, v in pairs(vars) do evtVars[k] = v end
+					evtVars.severity = tostring(severity_pct)
+					evtVars.hours = tostring(hours)
 					table.insert(news, {
-						title = interpolate(t.title, vars),
-						body = interpolate(t.body, vars),
-						priority = 2,
+						title = interpolate(t.title, evtVars),
+						body = interpolate(t.body, evtVars) ..
+							string.format(" (Severity: %d%%, %dh remaining)", severity_pct, hours),
+						priority = 3,
 					})
 				end
+			end
+		end
+	end
+
+	-- PersistentNPCTrade integration — report trade disruptions
+	local npcOk, NPC = pcall(require, 'modules.PersistentNPCTrade')
+	if npcOk and NPC then
+		local ok, status = pcall(function() return NPC.GetShipmentStatus() end)
+		if ok and status and (status.destroyed_shipments or 0) > 0 then
+			local ok2, deficits = pcall(function() return NPC.GetSupplyDeficits() end)
+			local deficit_count = 0
+			if ok2 and deficits then
+				for _ in pairs(deficits) do deficit_count = deficit_count + 1 end
+			end
+			if deficit_count > 0 then
+				table.insert(news, {
+					title = interpolate("TRADE ALERT: Supply Disruption in {system}", vars),
+					body = interpolate(string.format(
+						"Trade routes in {system} have been affected by pirate activity. " ..
+						"%d ships destroyed, %d tonnes of cargo lost. %d commodities currently in shortage. " ..
+						"Traders who can supply affected goods may find premium prices.",
+						status.destroyed_shipments or 0, status.total_cargo_lost or 0, deficit_count), vars),
+					priority = 2,
+				})
+			end
+		end
+	end
+
+	-- ExplorationRewards integration — report milestones
+	local erOk, ER = pcall(require, 'modules.ExplorationRewards')
+	if erOk and ER then
+		local ok, count = pcall(function() return ER.GetExploredCount() end)
+		if ok and count and count > 5 then
+			table.insert(news, {
+				title = interpolate("EXPLORATION: Independent Pilot Maps {explored} Systems", vars),
+				body = string.format(
+					"An independent pilot operating from %s has catalogued %d star systems. " ..
+					"The Explorers' Guild commends this contribution to galactic navigation.",
+					sysName, count),
+				priority = 0,
+			})
+		end
+	end
+
+	-- BountyBoard integration — report bounty activity
+	local bbOk, BB = pcall(require, 'modules.BountyBoard')
+	if bbOk and BB then
+		local ok, bounties = pcall(function() return BB.GetActiveBounties() end)
+		if ok and bounties and #bounties > 0 then
+			local completed = 0
+			for _, b in ipairs(bounties) do
+				if b.complete then completed = completed + 1 end
+			end
+			if completed > 0 then
+				table.insert(news, {
+					title = interpolate("SECURITY: Bounty Hunters Active in {system}", vars),
+					body = string.format(
+						"Bounty hunter activity in %s has resulted in %d confirmed eliminations. " ..
+						"%d active contracts remain. Local security forces express gratitude.",
+						sysName, completed, #bounties - completed),
+					priority = 1,
+				})
 			end
 		end
 	end
