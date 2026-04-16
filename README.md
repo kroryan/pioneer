@@ -237,7 +237,7 @@ The system automatically initializes when loaded and registers with Pioneer's se
 - **Community**: Thanks to the Pioneer community for feedback and testing
 
 Additional included mods in this build:
-- **SolarExtendedReborn**: Modernized Sol Extended system by CMDR ARGHouse (original) and community contributors
+- **SolarExtendedReborn**: Modernized Sol Extended system by CMDR ARGHouse (original) and kroryan contributors
 - **HYG Stellar Catalog**: Real-world star positions and names by AstroNexus / Hypernoot
 - **Skyboxes**: Seven new skyboxes ranging from Milky Way variations to spectacular nebulae
 
