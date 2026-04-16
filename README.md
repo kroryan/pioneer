@@ -102,3 +102,146 @@ For compiling from source, please see [COMPILING.txt](https://github.com/pioneer
 ## Changelog
 
 Please see [Changelog.txt](https://github.com/pioneerspacesim/pioneer/blob/master/Changelog.txt)
+
+
+## MODIFICATIONS BY KRORYAN
+
+This build includes the following enhancements:
+
+### Economy Enhancement Suite
+
+A comprehensive economic simulation system consisting of three self-contained Lua modules that seamlessly integrate with Pioneer's existing economy system.
+
+**Modules Included:**
+
+#### 1. Dynamic System Events (`DynamicSystemEvents.lua`)
+Creates reactive, probabilistic events that affect local economies:
+- **Civil War**: Disrupts industrial sectors, increasing prices for military goods
+- **Food Crisis**: Shortages drive agriculture and food prices up
+- **Economic Boom**: Increased demand for luxury goods and services
+- **Natural Disaster**: Infrastructure damage raises construction material prices
+- **Disease Outbreak**: Medical supplies and vaccines become premium commodities
+
+Each event:
+- Generates randomly with low probability (~0.05% per system check) to feel organic
+- Lasts 30-72 hours in-game time
+- Has varying severity (affects price multiplier strength)
+- Is fully serializable for game save/load compatibility
+
+#### 2. Persistent NPC Trade (`PersistentNPCTrade.lua`)
+Tracks inter-system trade relationships and economic dependencies:
+- Monitors NPC trade shipments between stations
+- Records destroyed or delayed cargo and its economic impact
+- Creates regional supply dependencies
+- When a trade ship is destroyed, the missing cargo affects destination economies (shortages)
+- Destroyed cargo events are fully persistent across save/load cycles
+
+Effects:
+- Destroyed shipments trigger local price increases for missing commodities
+- Regional systems develop trade dependencies
+- Creates emergent opportunities for player intervention and profit
+
+#### 3. Supply Chain Network (`SupplyChainNetwork.lua`)
+Defines five multi-level supply chains with completion bonuses:
+
+1. **Mining to Spacecraft** (15% base + 8% per node)
+   - Metal Ore → Refined Metals → Machinery → Spacecraft Parts
+   
+2. **Agriculture to Luxury** (12% base + 6% per node)
+   - Raw Food → Processed Food → Beverages → Luxury Goods
+   
+3. **Electronics Production** (18% base + 9% per node)
+   - Metals → Electronic Components → Electronics → Advanced Systems
+   
+4. **Medical Supply** (14% base + 7% per node)
+   - Chemicals → Medicines → Medical Supplies → Vaccines
+   
+5. **Industrial Base** (16% base + 8% per node)
+   - Minerals → Machinery → Industrial Equipment → Construction Materials
+
+Benefits:
+- Complete chains to unlock cumulative price bonuses (max 50% markup)
+- Identify profitable trading routes by analyzing chain completion
+- Long-distance trade becomes more rewarding
+- Economic incentives encourage inter-system commerce
+
+#### 4. Economy Enhancements Master Module (`EconomyEnhancements.lua`)
+Coordinates all three modules:
+- Unified API for accessing all economy features
+- Automatic serialization/deserialization for save compatibility
+- Can be enabled/disabled without unloading modules
+- Periodic coordination between subsystems
+
+### API Reference
+
+```lua
+local E = require('modules.EconomyEnhancements')
+
+-- Status
+E.IsEnabled()                          -> true/false
+E.GetVersion()                         -> "1.0.0"
+E.GetStatus()                          -> table
+
+-- Events
+E.GetSystemEvents()                    -> table of active events
+E.GetSystemEventDescription(event)     -> string
+
+-- Trade
+E.GetNPCTradeStatus()                  -> {active, delivered, destroyed, total_value}
+E.GetRegionalDependencies()            -> table
+E.GetDamagedCargo()                    -> table
+
+-- Supply Chains
+E.GetSupplyChains()                    -> table of chain definitions
+E.GetChainOpportunities()              -> table of trading opportunities
+E.GetChainDescription(name)            -> string
+E.GetCommodityBonus(commodity)         -> 1.0 + bonus multiplier
+```
+
+### Testing & Verification
+
+The suite includes `QuickTest.lua` for comprehensive testing:
+
+```lua
+require('modules.QuickTest').Run()     -- Comprehensive verification
+require('modules.QuickTest').Watch()   -- Real-time monitoring
+require('modules.QuickTest').Inspect() -- Detailed state inspection
+require('modules.QuickTest').Stress()  -- Stability test (100 iterations)
+require('modules.QuickTest').Debug()   -- Quick system state debug
+```
+
+### Design Philosophy
+
+- **Self-contained**: No external dependencies beyond Pioneer core libraries
+- **Emergent**: Effects appear gradually and organically through probabilistic systems
+- **Subtle**: Individual changes are small, but cumulative effects create a reactive economy
+- **Persistent**: Full serialization support ensures compatibility with game saves
+- **Non-invasive**: Modules coordinate without modifying core Pioneer systems
+- **Auditable**: Heavy debug logging shows exactly what's happening
+
+### Installation
+
+All modules are located in `pioneer/data/modules/`:
+- `DynamicSystemEvents.lua`
+- `PersistentNPCTrade.lua`
+- `SupplyChainNetwork.lua`
+- `EconomyEnhancements.lua`
+- `QuickTest.lua` (testing & verification)
+
+The system automatically initializes when loaded and registers with Pioneer's serialization system.
+
+### Credits & Attribution
+
+- **Economy Enhancement Suite**: Designed and implemented by KRORYAN
+- **Pioneer Core**: Original development by the Pioneer Developers (see AUTHORS.txt)
+- **Community**: Thanks to the Pioneer community for feedback and testing
+
+Additional included mods in this build:
+- **SolarExtendedReborn**: Modernized Sol Extended system by CMDR ARGHouse (original) and community contributors
+- **HYG Stellar Catalog**: Real-world star positions and names by AstroNexus / Hypernoot
+- **Skyboxes**: Seven new skyboxes ranging from Milky Way variations to spectacular nebulae
+
+### License
+
+All modifications are licensed under GPL-3.0, consistent with Pioneer's license.
+See [LICENSE](https://github.com/pioneerspacesim/pioneer/blob/master/LICENSE) for details.

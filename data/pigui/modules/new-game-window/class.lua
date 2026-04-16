@@ -30,7 +30,7 @@ StartVariants.register({
 	location   = SystemPath.New(0,0,0,0,18),
 	logmsg     = lui.START_LOG_ENTRY_1,
 	shipType   = 'coronatrix',
-	money      = 600,
+	money      = 67000,
 	equipment = {
 		computer_1     = "misc.autopilot",
 		laser_front_s2 = "laser.pulsecannon_1mw",
