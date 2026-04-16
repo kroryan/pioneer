@@ -108,138 +108,93 @@ Please see [Changelog.txt](https://github.com/pioneerspacesim/pioneer/blob/maste
 
 This build includes the following enhancements:
 
-### Economy Enhancement Suite
+### Economy Enhancement Suite v2.0
 
-A comprehensive economic simulation system consisting of three self-contained Lua modules that seamlessly integrate with Pioneer's existing economy system.
+A comprehensive economic simulation system using **real Pioneer APIs** (`SetCommodityPrice`, `SetCommodityStock`, `AddCommodityStock`, `CargoManager`, `BulletinBoard`) to produce visible in-game effects on station prices, stock levels, and the bulletin board.
 
 **Modules Included:**
 
 #### 1. Dynamic System Events (`DynamicSystemEvents.lua`)
-Creates reactive, probabilistic events that affect local economies:
-- **Civil War**: Disrupts industrial sectors, increasing prices for military goods
-- **Food Crisis**: Shortages drive agriculture and food prices up
-- **Economic Boom**: Increased demand for luxury goods and services
-- **Natural Disaster**: Infrastructure damage raises construction material prices
-- **Disease Outbreak**: Medical supplies and vaccines become premium commodities
+8 event types that **modify real station prices and stock** while docked:
+- **Civil War** / **Pirate Raids**: Increase weapon and military fuel prices (triggered by high lawlessness)
+- **Famine**: Spikes food and fertilizer prices (triggered by low population)
+- **Economic Boom**: Drives demand for consumer goods and electronics (high population)
+- **Natural Disaster** / **Plague**: Raises industrial/medical commodity prices
+- **Mining Boom** / **Tech Revolution**: Creates sector-specific opportunities
 
 Each event:
-- Generates randomly with low probability (~0.05% per system check) to feel organic
-- Lasts 30-72 hours in-game time
-- Has varying severity (affects price multiplier strength)
-- Is fully serializable for game save/load compatibility
+- Applies severity-scaled price/stock multipliers on `onPlayerDocked`, restores on `onPlayerUndocked`
+- Posts news adverts on the BulletinBoard showing affected commodities with price direction and percentage
+- Max 2 events per system; generated on `onEnterSystem` and every 30 minutes
+- Uses all 32 real Pioneer commodity names
+- Fully serializable
 
 #### 2. Persistent NPC Trade (`PersistentNPCTrade.lua`)
-Tracks inter-system trade relationships and economic dependencies:
-- Monitors NPC trade shipments between stations
-- Records destroyed or delayed cargo and its economic impact
-- Creates regional supply dependencies
-- When a trade ship is destroyed, the missing cargo affects destination economies (shortages)
-- Destroyed cargo events are fully persistent across save/load cycles
-
-Effects:
-- Destroyed shipments trigger local price increases for missing commodities
-- Regional systems develop trade dependencies
-- Creates emergent opportunities for player intervention and profit
+Tracks **real NPC cargo destruction** via `CargoManager:CountCommodity()`:
+- Hooks `onShipDestroyed` and `onCargoDestroyed` to detect actual cargo loss
+- Records supply deficits per system per commodity (2%/hour decay)
+- On player dock: reduces station stock via `AddCommodityStock(-reduction)`
+- BulletinBoard warnings list commodity shortages at the station
+- Destruction log (last 20 events, 7-day cleanup) with statistics
 
 #### 3. Supply Chain Network (`SupplyChainNetwork.lua`)
-Defines five multi-level supply chains with completion bonuses:
+Detects **real player trades** by comparing cargo on dock vs undock:
 
-1. **Mining to Spacecraft** (15% base + 8% per node)
-   - Metal Ore → Refined Metals → Machinery → Spacecraft Parts
-   
-2. **Agriculture to Luxury** (12% base + 6% per node)
-   - Raw Food → Processed Food → Beverages → Luxury Goods
-   
-3. **Electronics Production** (18% base + 9% per node)
-   - Metals → Electronic Components → Electronics → Advanced Systems
-   
-4. **Medical Supply** (14% base + 7% per node)
-   - Chemicals → Medicines → Medical Supplies → Vaccines
-   
-5. **Industrial Base** (16% base + 8% per node)
-   - Minerals → Machinery → Industrial Equipment → Construction Materials
+| Chain | Nodes (real commodity names) | Base Bonus | Per Node |
+|-------|------------------------------|-----------|----------|
+| Mining to Manufacturing | metal_ore → metal_alloys → industrial_machinery → robots | 15% | +8% |
+| Agriculture to Luxury | grain → animal_meat → liquor → consumer_goods | 12% | +6% |
+| Electronics Production | metal_alloys → plastics → computers → robots | 18% | +9% |
+| Medical Supply | chemicals → medicines → air_processors → fertilizer | 14% | +7% |
+| Industrial Base | carbon_ore → plastics → industrial_machinery → mining_machinery | 16% | +8% |
 
-Benefits:
-- Complete chains to unlock cumulative price bonuses (max 50% markup)
-- Identify profitable trading routes by analyzing chain completion
-- Long-distance trade becomes more rewarding
-- Economic incentives encourage inter-system commerce
+- 10 tonnes traded activates a chain node; cumulative bonuses up to 50% cap
+- BulletinBoard advert shows chain progress with [OK]/[  ] markers
 
 #### 4. Economy Enhancements Master Module (`EconomyEnhancements.lua`)
-Coordinates all three modules:
-- Unified API for accessing all economy features
-- Automatic serialization/deserialization for save compatibility
-- Can be enabled/disabled without unloading modules
-- Periodic coordination between subsystems
+Clean v2.0 coordinator — pcall loading, no redundant timers, unified API pass-through.
+
+### Cool Events Log (`eventlog`)
+A small mod that logs game events (docking, undocking, hyperspace, collisions, etc.) to a text file at `user://mods/eventlog/event_log.txt`. Useful for external tools, simpits, speech synthesizers, or second-monitor displays.
+
+### Alpha Centauri Custom System (`20_alpha_centauri.lua`)
+Complete 3-star custom system (Rigil Kentaurus + Toliman + Proxima Centauri) with detailed planets, moons, asteroid bodies, and military stations. Replaces the auto-generated HYG entries.
+
+### Quick Test & Verification
+
+```lua
+require('modules.QuickTest').Run()     -- Comprehensive verification
+require('modules.QuickTest').Watch()   -- Real-time monitoring
+require('modules.QuickTest').Inspect() -- Detailed data dump
+require('modules.QuickTest').Stress()  -- Stability test (100 iterations)
+```
 
 ### API Reference
 
 ```lua
 local E = require('modules.EconomyEnhancements')
 
--- Status
-E.IsEnabled()                          -> true/false
-E.GetVersion()                         -> "1.0.0"
-E.GetStatus()                          -> table
-
--- Events
-E.GetSystemEvents()                    -> table of active events
-E.GetSystemEventDescription(event)     -> string
-
--- Trade
-E.GetNPCTradeStatus()                  -> {active, delivered, destroyed, total_value}
-E.GetRegionalDependencies()            -> table
-E.GetDamagedCargo()                    -> table
-
--- Supply Chains
-E.GetSupplyChains()                    -> table of chain definitions
-E.GetChainOpportunities()              -> table of trading opportunities
-E.GetChainDescription(name)            -> string
-E.GetCommodityBonus(commodity)         -> 1.0 + bonus multiplier
+E.GetVersion()                         --> "2.0.0"
+E.GetStatus()                          --> {enabled, version, system_events, npc_trade, supply_chains}
+E.GetSystemEvents()                    --> table of active events
+E.GetEventTypes()                      --> all event type definitions
+E.GetNPCTradeStatus()                  --> {ships_destroyed, total_cargo_lost, total_value_lost}
+E.GetSupplyDeficits()                  --> {system -> {commodity -> deficit}}
+E.GetSupplyChains()                    --> chain definitions
+E.GetChainOpportunities()              --> sorted by bonus potential
+E.GetChainProgress()                   --> {chain -> {commodity -> tonnes}}
+E.GetCommodityBonus(commodity)         --> 1.0 + bonus multiplier
 ```
-
-### Testing & Verification
-
-The suite includes `QuickTest.lua` for comprehensive testing:
-
-```lua
-require('modules.QuickTest').Run()     -- Comprehensive verification
-require('modules.QuickTest').Watch()   -- Real-time monitoring
-require('modules.QuickTest').Inspect() -- Detailed state inspection
-require('modules.QuickTest').Stress()  -- Stability test (100 iterations)
-require('modules.QuickTest').Debug()   -- Quick system state debug
-```
-
-### Design Philosophy
-
-- **Self-contained**: No external dependencies beyond Pioneer core libraries
-- **Emergent**: Effects appear gradually and organically through probabilistic systems
-- **Subtle**: Individual changes are small, but cumulative effects create a reactive economy
-- **Persistent**: Full serialization support ensures compatibility with game saves
-- **Non-invasive**: Modules coordinate without modifying core Pioneer systems
-- **Auditable**: Heavy debug logging shows exactly what's happening
-
-### Installation
-
-All modules are located in `pioneer/data/modules/`:
-- `DynamicSystemEvents.lua`
-- `PersistentNPCTrade.lua`
-- `SupplyChainNetwork.lua`
-- `EconomyEnhancements.lua`
-- `QuickTest.lua` (testing & verification)
-
-The system automatically initializes when loaded and registers with Pioneer's serialization system.
 
 ### Credits & Attribution
 
-- **Economy Enhancement Suite**: Designed and implemented by KRORYAN
-- **Pioneer Core**: Original development by the Pioneer Developers (see AUTHORS.txt)
-- **Community**: Thanks to the Pioneer community for feedback and testing
-
-Additional included mods in this build:
+- **Economy Enhancement Suite v2.0**: Designed and implemented by **kroryan**
+- **Pioneer Cool Events Log** (eventlog module): Original mod for Pioneer Space Sim — logs cool events to a text file for external tools, simpits, second monitors, speech synths. Available under "please steal all of it" license.
+- **Alpha Centauri Custom System**: Created by **Hypernoot [NOOT]** (14/11/2025) — CC-BY-SA 4.0 International
 - **SolarExtendedReborn**: Modernized Sol Extended system by CMDR ARGHouse (original) and kroryan contributors
 - **HYG Stellar Catalog**: Real-world star positions and names by AstroNexus / Hypernoot
 - **Skyboxes**: Seven new skyboxes ranging from Milky Way variations to spectacular nebulae
+- **Pioneer Core**: Original development by the [Pioneer Developers](https://github.com/pioneerspacesim/pioneer) (see AUTHORS.txt)
 
 ### License
 
