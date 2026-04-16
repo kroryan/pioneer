@@ -4,522 +4,426 @@
 --
 -- Module: SupplyChainNetwork
 --
--- This module defines complex, multi-level supply chains that create profitable
--- long-distance trading opportunities. By connecting different nodes of a supply chain
--- (mining -> refining -> manufacturing -> finished goods), players can unlock
--- bonuses and special trading opportunities.
---
--- Self-contained module - no external dependencies beyond game core libraries
+-- Tracks player trading along multi-level supply chains using real
+-- commodity names. Compares cargo on dock vs undock to detect trades.
+-- Completed chain nodes earn cumulative price bonuses.
+-- Shows chain progress and opportunities on the BulletinBoard.
 --
 
 local Engine      = require 'Engine'
 local Event       = require 'Event'
 local Game        = require 'Game'
 local Timer       = require 'Timer'
-local Rand        = require 'Rand'
 local Serializer  = require 'Serializer'
-local utils       = require 'utils'
-
-print("[LOAD] SupplyChainNetwork: Initializing...")
+local Commodities = require 'Commodities'
+local Economy     = require 'Economy'
 
 ---@class SupplyChainNetwork
 local SupplyChainNetwork = {}
 
 -- ============================================================================
--- SUPPLY CHAIN DEFINITIONS
+-- SUPPLY CHAIN DEFINITIONS (real commodity names)
 -- ============================================================================
 
--- Define multi-level supply chains
--- Each chain has nodes (stages) that must be connected to unlock bonuses
 local SupplyChains = {
 	MINING_TO_SPACECRAFT = {
-		name = "Mining to Spacecraft",
-		description = "Raw ore → Metal → Components → Spacecraft parts",
+		name = "Mining to Manufacturing",
+		description = "Metal Ore -> Metal Alloys -> Industrial Machinery -> Robots",
 		nodes = {
-			{ stage = 1, commodity = "metal_ore", desc = "Metal Ore Extraction" },
-			{ stage = 2, commodity = "metals", desc = "Refined Metals" },
-			{ stage = 3, commodity = "industrial_machinery", desc = "Manufacturing" },
-			{ stage = 4, commodity = "spacecraft_parts", desc = "Spacecraft Components" },
+			{ stage = 1, commodity = "metal_ore",            desc = "Metal Ore Extraction" },
+			{ stage = 2, commodity = "metal_alloys",         desc = "Metal Refining" },
+			{ stage = 3, commodity = "industrial_machinery", desc = "Heavy Manufacturing" },
+			{ stage = 4, commodity = "robots",               desc = "Robotics Assembly" },
 		},
-		base_bonus = 1.15, -- 15% price bonus when complete
-		chain_bonus = 0.08, -- 8% additional bonus per connected node
+		base_bonus = 0.15,
+		per_node_bonus = 0.08,
 	},
-
 	AGRICULTURE_TO_LUXURY = {
 		name = "Agriculture to Luxury",
-		description = "Raw food → Processed food → Beverages → Luxury goods",
+		description = "Grain -> Animal Meat -> Liquor -> Consumer Goods",
 		nodes = {
-			{ stage = 1, commodity = "food", desc = "Raw Agricultural Products" },
-			{ stage = 2, commodity = "food_products", desc = "Processed Food" },
-			{ stage = 3, commodity = "drinks", desc = "Beverages" },
-			{ stage = 4, commodity = "luxury_goods", desc = "Luxury Products" },
+			{ stage = 1, commodity = "grain",           desc = "Grain Farming" },
+			{ stage = 2, commodity = "animal_meat",     desc = "Livestock Processing" },
+			{ stage = 3, commodity = "liquor",          desc = "Distillery" },
+			{ stage = 4, commodity = "consumer_goods",  desc = "Luxury Production" },
 		},
-		base_bonus = 1.12,
-		chain_bonus = 0.06,
+		base_bonus = 0.12,
+		per_node_bonus = 0.06,
 	},
-
 	ELECTRONICS_PRODUCTION = {
 		name = "Electronics Production",
-		description = "Raw materials → Components → Electronics → Advanced Systems",
+		description = "Metal Alloys -> Plastics -> Computers -> Robots",
 		nodes = {
-			{ stage = 1, commodity = "metals", desc = "Refined Metals" },
-			{ stage = 2, commodity = "electronics_components", desc = "Electronic Components" },
-			{ stage = 3, commodity = "electronics", desc = "Electronic Goods" },
-			{ stage = 4, commodity = "advanced_electronics", desc = "Advanced Electronics" },
+			{ stage = 1, commodity = "metal_alloys", desc = "Raw Materials" },
+			{ stage = 2, commodity = "plastics",     desc = "Component Fabrication" },
+			{ stage = 3, commodity = "computers",    desc = "Computer Assembly" },
+			{ stage = 4, commodity = "robots",        desc = "Advanced Systems" },
 		},
-		base_bonus = 1.18,
-		chain_bonus = 0.09,
+		base_bonus = 0.18,
+		per_node_bonus = 0.09,
 	},
-
 	MEDICAL_SUPPLY = {
 		name = "Medical Supply Chain",
-		description = "Chemicals → Medicines → Medical supplies → Advanced treatment",
+		description = "Chemicals -> Medicines -> Air Processors -> Fertilizer",
 		nodes = {
-			{ stage = 1, commodity = "chemicals", desc = "Raw Chemicals" },
-			{ stage = 2, commodity = "medicines", desc = "Pharmaceuticals" },
-			{ stage = 3, commodity = "medical_supplies", desc = "Medical Equipment" },
-			{ stage = 4, commodity = "vaccines", desc = "Advanced Vaccines" },
+			{ stage = 1, commodity = "chemicals",       desc = "Chemical Production" },
+			{ stage = 2, commodity = "medicines",       desc = "Pharmaceuticals" },
+			{ stage = 3, commodity = "air_processors",  desc = "Life Support Systems" },
+			{ stage = 4, commodity = "fertilizer",      desc = "Biotech Applications" },
 		},
-		base_bonus = 1.14,
-		chain_bonus = 0.07,
+		base_bonus = 0.14,
+		per_node_bonus = 0.07,
 	},
-
 	INDUSTRIAL_BASE = {
-		name = "Industrial Base Development",
-		description = "Minerals → Machinery → Industrial equipment → Factories",
+		name = "Industrial Base",
+		description = "Carbon Ore -> Plastics -> Industrial Machinery -> Mining Machinery",
 		nodes = {
-			{ stage = 1, commodity = "metal_ore", desc = "Mineral Extraction" },
-			{ stage = 2, commodity = "industrial_machinery", desc = "Heavy Machinery" },
-			{ stage = 3, commodity = "machinery", desc = "Manufacturing Equipment" },
-			{ stage = 4, commodity = "construction_materials", desc = "Construction Materials" },
+			{ stage = 1, commodity = "carbon_ore",           desc = "Carbon Mining" },
+			{ stage = 2, commodity = "plastics",             desc = "Polymer Production" },
+			{ stage = 3, commodity = "industrial_machinery", desc = "Machine Tools" },
+			{ stage = 4, commodity = "mining_machinery",     desc = "Mining Equipment" },
 		},
-		base_bonus = 1.16,
-		chain_bonus = 0.08,
+		base_bonus = 0.16,
+		per_node_bonus = 0.08,
 	},
 }
 
-local ChainList = utils.to_array(SupplyChains)
+-- Maximum bonus from chains (50% cap)
+local MAX_CHAIN_BONUS = 0.50
 
 -- ============================================================================
--- STATE TRACKING
+-- STATE
 -- ============================================================================
 
--- Track player progress through supply chains
--- Format: { player -> { chain_name -> { system_path -> stage_reached } } }
-local player_chain_progress = {}
+-- Player cargo snapshot taken on dock
+local cargo_on_dock = {}
 
--- Track active supply chain routes
--- Format: { route_id -> { chain, origin, destination, nodes_connected, value } }
-local active_routes = {}
+-- Chain progress: {chain_key -> {commodity_name -> total_tonnes_traded}}
+local chain_progress = {}
 
--- Track supply chain efficiency bonuses per system
--- Format: { system_path -> { chain_name -> efficiency_factor } }
-local chain_efficiency = {}
+-- Chain completion bonuses earned: {chain_key -> bonus_multiplier}
+local chain_bonuses = {}
 
--- Counter for route IDs
-local route_id_counter = 0
-
--- Minimum distance for long-distance bonus (light-years)
-local MIN_DISTANCE_FOR_BONUS = 5.0
+-- BB advert refs
+local bb_ads = {}
 
 -- ============================================================================
--- CHAIN ANALYSIS
+-- CARGO SNAPSHOT (detect what player bought/sold)
 -- ============================================================================
 
---
--- Function: AnalyzeSupplyChain
---
--- Analyze if a supply chain is partially or fully complete in a region
--- Returns the stage completion percentage
---
-local function AnalyzeSupplyChain(chain_name, system_paths)
-	if not system_paths or #system_paths == 0 then
-		return 0
+local function SnapshotPlayerCargo()
+	cargo_on_dock = {}
+	local player = Game.player
+	if not player then return end
+
+	local ok, cargoMgr = pcall(function() return player:GetComponent('CargoManager') end)
+	if not ok or not cargoMgr then return end
+
+	for name, commodity in pairs(Commodities) do
+		local count_ok, count = pcall(function() return cargoMgr:CountCommodity(commodity) end)
+		if count_ok and count then
+			cargo_on_dock[name] = count
+		end
 	end
+end
 
-	local chain = SupplyChains[chain_name]
-	if not chain then
-		return 0
+local function DetectTrades(station)
+	local player = Game.player
+	if not player then return end
+
+	local ok, cargoMgr = pcall(function() return player:GetComponent('CargoManager') end)
+	if not ok or not cargoMgr then return end
+
+	for name, commodity in pairs(Commodities) do
+		local count_ok, current = pcall(function() return cargoMgr:CountCommodity(commodity) end)
+		if not count_ok then current = 0 end
+
+		local previous = cargo_on_dock[name] or 0
+		local diff = (current or 0) - previous
+
+		-- Player BOUGHT if current > previous, SOLD if current < previous
+		local traded = math.abs(diff)
+		if traded > 0 then
+			RecordChainTrade(name, traded)
+		end
 	end
+end
 
-	local nodes_found = {}
-	for _, node in ipairs(chain.nodes) do
-		nodes_found[node.stage] = false
-	end
+-- ============================================================================
+-- CHAIN TRACKING
+-- ============================================================================
 
-	-- Check which nodes are available in the region
-	for _, system_path in ipairs(system_paths) do
-		local system = system_path:GetStarSystem()
-		if system then
-			-- In a real implementation, check station economies
-			-- For now, simulate with randomness based on system characteristics
-			for _, node in ipairs(chain.nodes) do
-				if Engine.rand:Number() > 0.4 then
-					nodes_found[node.stage] = true
+function RecordChainTrade(commodity_name, amount)
+	for chain_key, chain in pairs(SupplyChains) do
+		for _, node in ipairs(chain.nodes) do
+			if node.commodity == commodity_name then
+				if not chain_progress[chain_key] then
+					chain_progress[chain_key] = {}
 				end
+				chain_progress[chain_key][commodity_name] =
+					(chain_progress[chain_key][commodity_name] or 0) + amount
+
+				-- Recalculate bonus for this chain
+				UpdateChainBonus(chain_key)
+				break
 			end
 		end
 	end
+end
 
-	-- Count found nodes
-	local found_count = 0
-	for _, found in pairs(nodes_found) do
-		if found then
-			found_count = found_count + 1
+function UpdateChainBonus(chain_key)
+	local chain = SupplyChains[chain_key]
+	if not chain then return end
+
+	local progress = chain_progress[chain_key] or {}
+	local nodes_active = 0
+
+	for _, node in ipairs(chain.nodes) do
+		local traded = progress[node.commodity] or 0
+		-- Need at least 10 tonnes traded to count as "active" node
+		if traded >= 10 then
+			nodes_active = nodes_active + 1
 		end
 	end
 
-	return found_count / #chain.nodes
-end
-
---
--- Function: CalculateChainBonus
---
--- Calculate the trading bonus for a connected supply chain
---
-local function CalculateChainBonus(chain_name, nodes_connected)
-	local chain = SupplyChains[chain_name]
-	if not chain then
-		return 1.0
-	end
-
-	-- Base bonus
-	local bonus = chain.base_bonus
-
-	-- Additional bonus per connected node
-	bonus = bonus + (nodes_connected * chain.chain_bonus)
-
-	-- Cap the bonus at 50% markup
-	return math.min(bonus, 1.5)
-end
-
---
--- Function: FindChainOpportunities
---
--- Identify supply chain opportunities in the current region
--- Returns a list of partially-connected chains and recommended routes
---
-local function FindChainOpportunities()
-	if not Game.system then
-		return {}
-	end
-
-	local opportunities = {}
-
-	-- Analyze each supply chain
-	for chain_name, chain_def in pairs(SupplyChains) do
-		-- Get nearby systems (simplified - in production use actual neighbor calculation)
-		local nearby_systems = { Game.system.path }
-		-- (In production, add actual nearby systems)
-
-		local completion = AnalyzeSupplyChain(chain_name, nearby_systems)
-		if completion > 0 and completion < 1.0 then
-			-- This chain is partially complete
-			table.insert(opportunities, {
-				chain = chain_name,
-				completion_percent = completion * 100,
-				bonus_potential = CalculateChainBonus(chain_name, math.ceil(completion * #chain_def.nodes)) - 1,
-				description = chain_def.description,
-			})
-		end
-	end
-
-	-- Sort by profit potential
-	table.sort(opportunities, function(a, b)
-		return a.bonus_potential > b.bonus_potential
-	end)
-
-	return opportunities
-end
-
--- ============================================================================
--- ROUTE CREATION
--- ============================================================================
-
---
--- Function: CreateSupplyChainRoute
---
--- Create a route connecting multiple nodes of a supply chain
---
-local function CreateSupplyChainRoute(chain_name, origin_system, destination_system)
-	local chain = SupplyChains[chain_name]
-	if not chain then
-		return nil
-	end
-
-	route_id_counter = route_id_counter + 1
-
-	local route = {
-		id = route_id_counter,
-		chain = chain_name,
-		origin = origin_system,
-		destination = destination_system,
-		created_time = Game.time,
-		deliveries_completed = 0,
-		total_profit = 0,
-		status = "active",
-	}
-
-	active_routes[route.id] = route
-
-	-- Record efficiency improvement for the chain in this system
-	local dest_path = destination_system
-	if not chain_efficiency[dest_path] then
-		chain_efficiency[dest_path] = {}
-	end
-	chain_efficiency[dest_path][chain_name] = (chain_efficiency[dest_path][chain_name] or 1.0) + 0.02
-
-	return route
-end
-
---
--- Function: ProcessSupplyChainDelivery
---
--- Process a successful delivery along a supply chain route
--- Apply bonuses to prices and update chain efficiency
---
-local function ProcessSupplyChainDelivery(route_id, profit)
-	local route = active_routes[route_id]
-	if not route then
+	local total_nodes = #chain.nodes
+	if nodes_active == 0 then
+		chain_bonuses[chain_key] = 0
 		return
 	end
 
-	route.deliveries_completed = route.deliveries_completed + 1
-	route.total_profit = route.total_profit + profit
+	-- Bonus scales with completion: partial chains give partial bonus
+	local completion = nodes_active / total_nodes
+	local bonus = chain.base_bonus * completion + chain.per_node_bonus * nodes_active
 
-	-- Improve chain efficiency in destination
-	local chain = SupplyChains[route.chain]
-	if chain then
-		local efficiency_gain = (profit / 10000) * chain.chain_bonus -- Scale profit impact
-		if not chain_efficiency[route.destination] then
-			chain_efficiency[route.destination] = {}
-		end
-		chain_efficiency[route.destination][route.chain] = math.min(
-			(chain_efficiency[route.destination][route.chain] or 1.0) + efficiency_gain,
-			1.5 -- Cap at 50% bonus
-		)
-	end
+	chain_bonuses[chain_key] = math.min(bonus, MAX_CHAIN_BONUS)
 end
 
---
--- Function: GetChainBonusForCommodity
---
--- Calculate if a commodity benefits from chain bonuses in the current system
--- Returns multiplier (1.0 = no bonus)
---
-local function GetChainBonusForCommodity(commodity_name)
-	if not Game.system then
-		return 1.0
-	end
+-- ============================================================================
+-- PRICE BONUS APPLICATION
+-- ============================================================================
 
-	local system_path = Game.system.path
-	if not chain_efficiency[system_path] then
-		return 1.0
-	end
+-- Get the total chain bonus for a specific commodity
+local function GetCommodityChainBonus(commodity_name)
+	local max_bonus = 0
 
-	-- Check if this commodity is part of any active chain
-	local max_bonus = 1.0
-	for chain_name, efficiency in pairs(chain_efficiency[system_path]) do
-		local chain = SupplyChains[chain_name]
-		if chain then
-			for _, node in ipairs(chain.nodes) do
-				if node.commodity == commodity_name then
-					max_bonus = math.max(max_bonus, efficiency)
+	for chain_key, chain in pairs(SupplyChains) do
+		for _, node in ipairs(chain.nodes) do
+			if node.commodity == commodity_name then
+				local bonus = chain_bonuses[chain_key] or 0
+				if bonus > max_bonus then
+					max_bonus = bonus
 				end
 			end
 		end
 	end
 
-	return max_bonus
+	return 1.0 + max_bonus
+end
+
+-- ============================================================================
+-- BULLETIN BOARD INTEGRATION
+-- ============================================================================
+
+local function GetChainStatus(chain_key)
+	local chain = SupplyChains[chain_key]
+	if not chain then return nil end
+
+	local progress = chain_progress[chain_key] or {}
+	local nodes_status = {}
+	local active_count = 0
+
+	for _, node in ipairs(chain.nodes) do
+		local traded = progress[node.commodity] or 0
+		local is_active = traded >= 10
+		if is_active then active_count = active_count + 1 end
+		table.insert(nodes_status, {
+			desc = node.desc,
+			commodity = node.commodity,
+			traded = traded,
+			active = is_active,
+		})
+	end
+
+	return {
+		name = chain.name,
+		description = chain.description,
+		nodes = nodes_status,
+		active_count = active_count,
+		total_nodes = #chain.nodes,
+		bonus = chain_bonuses[chain_key] or 0,
+	}
+end
+
+local function AddChainAdverts(station)
+	-- Show a "Supply Chain Opportunities" advert
+	local any_progress = false
+	for _, bonus in pairs(chain_bonuses) do
+		if bonus > 0 then any_progress = true; break end
+	end
+
+	local desc = any_progress
+		and "View your supply chain progress and trading bonuses"
+		or "Learn about profitable multi-commodity supply chains"
+
+	local ref = station:AddAdvert({
+		title = "Supply Chain Trading Network",
+		description = desc,
+		icon = "trade",
+		onChat = function(form, ref, option)
+			form:Clear()
+			form:SetTitle("Supply Chain Trading Network")
+
+			local msg = "Complete multi-step supply chains to earn cumulative trading bonuses.\n"
+			msg = msg .. "Trade at least 10 tonnes of each commodity in a chain to activate that node.\n\n"
+
+			for chain_key, chain in pairs(SupplyChains) do
+				local status = GetChainStatus(chain_key)
+				if status then
+					local pct = math.floor(status.active_count / status.total_nodes * 100)
+					local bonus_pct = math.floor(status.bonus * 100)
+					msg = msg .. string.format("--- %s [%d%% | +%d%% bonus] ---\n", status.name, pct, bonus_pct)
+					msg = msg .. status.description .. "\n"
+
+					for _, ns in ipairs(status.nodes) do
+						local c = Commodities[ns.commodity]
+						local cname = c and c:GetName() or ns.commodity
+						local mark = ns.active and "[OK]" or "[  ]"
+						msg = msg .. string.format("  %s %s: %s (%d t traded)\n",
+							mark, ns.desc, cname, ns.traded)
+					end
+					msg = msg .. "\n"
+				end
+			end
+
+			form:SetMessage(msg)
+		end,
+		onDelete = function(ref)
+			bb_ads[ref] = nil
+		end,
+	})
+	if ref then
+		bb_ads[ref] = { station = station }
+	end
 end
 
 -- ============================================================================
 -- EVENT HANDLERS
 -- ============================================================================
 
---
--- Monitor player trades for supply chain progress
---
-Event.Register("onShipDocked", function(ship, station)
-	if not ship:IsPlayer() then
-		return
-	end
-
-	if Game.system and station then
-		-- Track which supply chains have nodes available at this station
-		-- (In production, integrate with station economy data)
-	end
+Event.Register("onPlayerDocked", function(player, station)
+	SnapshotPlayerCargo()
 end)
 
---
--- Initialize supply chain tracking
---
+Event.Register("onPlayerUndocked", function(player, station)
+	DetectTrades(station)
+end)
+
+Event.Register("onCreateBB", function(station)
+	AddChainAdverts(station)
+end)
+
 Event.Register("onGameStart", function()
-	player_chain_progress = {}
-	active_routes = {}
-	chain_efficiency = {}
-	route_id_counter = 0
+	chain_progress = chain_progress or {}
+	chain_bonuses = chain_bonuses or {}
+	cargo_on_dock = {}
+	bb_ads = {}
 
-	-- Periodic evaluation of supply chains
-	Timer:CallEvery(120 * 60, function()
-		local opportunities = FindChainOpportunities()
-		-- (Would update UI or trigger events with opportunities)
-	end)
-end)
-
---
--- Clean up on system exit
---
-Event.Register("onLeaveSystem", function(ship)
-	if not ship:IsPlayer() then
-		return
+	-- Recalculate all bonuses from progress
+	for chain_key, _ in pairs(SupplyChains) do
+		UpdateChainBonus(chain_key)
 	end
-
-	-- Optional: Update efficiency based on player activity
 end)
 
 Event.Register("onGameEnd", function()
-	player_chain_progress = {}
-	active_routes = {}
-	chain_efficiency = {}
+	chain_progress = {}
+	chain_bonuses = {}
+	cargo_on_dock = {}
+	bb_ads = {}
 end)
 
 -- ============================================================================
 -- SERIALIZATION
 -- ============================================================================
 
-local function _serialize()
-	return {
-		player_progress = player_chain_progress,
-		active_routes = active_routes,
-		chain_efficiency = chain_efficiency,
-		route_id_counter = route_id_counter,
-	}
-end
-
-local function _deserialize(data)
-	if not data then
-		return
+Serializer:Register("SupplyChainNetwork",
+	function()
+		return {
+			progress = chain_progress,
+			bonuses = chain_bonuses,
+		}
+	end,
+	function(data)
+		if not data then return end
+		chain_progress = data.progress or {}
+		chain_bonuses = data.bonuses or {}
 	end
-
-	player_chain_progress = data.player_progress or {}
-	active_routes = data.active_routes or {}
-	chain_efficiency = data.chain_efficiency or {}
-	route_id_counter = data.route_id_counter or 0
-end
-
-Serializer:Register("SupplyChainNetwork", _serialize, _deserialize)
+)
 
 -- ============================================================================
 -- PUBLIC API
 -- ============================================================================
 
---
--- Function: GetSupplyChains
---
--- Return all available supply chains
---
 function SupplyChainNetwork.GetSupplyChains()
-	-- Convert to array for easier iteration
-	local chains_array = {}
-	for chain_key, chain_data in pairs(SupplyChains) do
-		table.insert(chains_array, chain_data)
+	local result = {}
+	for key, chain in pairs(SupplyChains) do
+		table.insert(result, {
+			key = key,
+			name = chain.name,
+			description = chain.description,
+			nodes = chain.nodes,
+			base_bonus = chain.base_bonus,
+			per_node_bonus = chain.per_node_bonus,
+		})
 	end
-	return chains_array
+	return result
 end
 
---
--- Function: GetChainDescription
---
--- Return detailed information about a supply chain
---
-function SupplyChainNetwork.GetChainDescription(chain_name)
-	local chain = SupplyChains[chain_name]
-	if not chain then
-		return nil
-	end
-
-	return {
-		name = chain.name,
-		description = chain.description,
-		nodes = chain.nodes,
-		base_bonus = chain.base_bonus,
-	}
-end
-
---
--- Function: GetChainOpportunities
---
--- Return trading opportunities based on supply chains
---
 function SupplyChainNetwork.GetChainOpportunities()
-	return FindChainOpportunities()
+	local opps = {}
+	for chain_key, chain in pairs(SupplyChains) do
+		local status = GetChainStatus(chain_key)
+		if status then
+			table.insert(opps, {
+				chain = status.name,
+				chain_key = chain_key,
+				completion_percent = math.floor(status.active_count / status.total_nodes * 100),
+				bonus_potential = chain.base_bonus + chain.per_node_bonus * status.total_nodes,
+				current_bonus = status.bonus,
+				active_nodes = status.active_count,
+				total_nodes = status.total_nodes,
+			})
+		end
+	end
+	table.sort(opps, function(a, b) return a.bonus_potential > b.bonus_potential end)
+	return opps
 end
 
---
--- Function: GetChainEfficiency
---
--- Return current chain efficiency in a system
---
 function SupplyChainNetwork.GetChainEfficiency(system_path)
-	if not system_path then
-		if not Game.system then
-			return {}
-		end
-		system_path = Game.system.path
-	end
-	return chain_efficiency[system_path] or {}
+	-- Return bonuses relevant to any system
+	return chain_bonuses
 end
 
---
--- Function: CreateRoute
---
--- Create a new supply chain route for tracking
---
-function SupplyChainNetwork.CreateRoute(chain_name, origin_system, destination_system)
-	return CreateSupplyChainRoute(chain_name, origin_system, destination_system)
-end
-
---
--- Function: RecordDelivery
---
--- Record a successful supply chain delivery with profit
---
-function SupplyChainNetwork.RecordDelivery(route_id, profit)
-	ProcessSupplyChainDelivery(route_id, profit)
-end
-
---
--- Function: GetCommodityBonus
---
--- Get the price bonus multiplier for a commodity due to supply chain efficiency
---
 function SupplyChainNetwork.GetCommodityBonus(commodity_name)
-	return GetChainBonusForCommodity(commodity_name)
+	return GetCommodityChainBonus(commodity_name)
 end
 
---
--- Function: GetRouteStatistics
---
--- Return statistics about active supply chain routes
---
 function SupplyChainNetwork.GetRouteStatistics()
-	local stats = {
-		active_routes = 0,
-		total_deliveries = 0,
-		total_profit = 0,
-	}
-
-	for _, route in pairs(active_routes) do
-		if route.status == "active" then
-			stats.active_routes = stats.active_routes + 1
-		end
-		stats.total_deliveries = stats.total_deliveries + route.deliveries_completed
-		stats.total_profit = stats.total_profit + route.total_profit
+	local active = 0
+	local total_bonus = 0
+	for _, bonus in pairs(chain_bonuses) do
+		if bonus > 0 then active = active + 1 end
+		total_bonus = total_bonus + bonus
 	end
-
-	return stats
+	return {
+		active_routes = active,
+		total_deliveries = 0,
+		total_profit = math.floor(total_bonus * 100),
+	}
 end
 
-print("[LOAD] SupplyChainNetwork: Module loaded successfully and exported")
+function SupplyChainNetwork.GetChainProgress()
+	return chain_progress
+end
+
 return SupplyChainNetwork
