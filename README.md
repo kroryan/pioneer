@@ -154,6 +154,71 @@ Detects **real player trades** by comparing cargo on dock vs undock:
 #### 4. Economy Enhancements Master Module (`EconomyEnhancements.lua`)
 Clean v2.0 coordinator — pcall loading, no redundant timers, unified API pass-through.
 
+### Expansion Modules
+
+#### 5. Exploration Rewards (`ExplorationRewards.lua`)
+First-visit discovery bonuses and scan data trading:
+- 250 cr bonus per new system explored
+- Sell accumulated scan data at stations via Bulletin Board ("EXPLORERS' GUILD")
+- 6 milestones: Pathfinder (10) → Scout (25) → Explorer (50) → Trailblazer (100) → Vanguard (250) → Pioneer (500)
+- Milestone rewards from 500 cr to 50,000 cr
+
+#### 6. System News Feed (`SystemNewsFeed.lua`)
+Procedural galactic news system:
+- 8 event-reactive news templates tied to DynamicSystemEvents
+- 5 filler article categories based on system properties
+- News posted as Bulletin Board adverts at every station
+- Priority system for event-related vs background news
+
+#### 7. Bounty Hunter Board (`BountyBoard.lua`)
+Combat mission system with 4 target types:
+- PIRATE_LORD, SMUGGLER, MURDERER, DESERTER — each with different lawlessness requirements
+- Targets spawn via `ShipBuilder.MakeShipOrbit` with appropriate threat levels
+- Reputation gate: requires rep ≥ 4 and killcount ≥ 2 (adverts visible but grayed out below threshold)
+- Registered as mission type "BountyHunt" in the Missions panel
+
+#### 8. Smuggling Contracts (`SmugglingContracts.lua`)
+Contraband hauling for profit:
+- 5 contraband commodity types with risk-scaled rewards
+- Only available in systems with lawlessness > 15%
+- 25% police scan chance on delivery — failed scans mean cargo seizure
+- Lawful destination bonus for extra risk
+- Registered as mission type "Smuggling"
+
+#### 9. Passenger Missions (`PassengerMissions.lua`)
+5 passenger transport flavours:
+- BUSINESS, VIP (3× pay), FAMILY (3-6 pax), SCIENTIST (2-4 pax), REFUGEE (lawless systems only)
+- Uses real Passengers API: `EmbarkPassenger`/`DisembarkPassenger` per Character
+- Early delivery bonus: +15% per day early (max 5 days); late penalty: 50% payment
+- Registered as mission type "PassengerTransport"
+
+#### 10. Station Services (`StationServices.lua`)
+6 ship upgrade services available at stations:
+- HULL_REINFORCEMENT, ENGINE_TUNING, SENSOR_CALIBRATION, CARGO_OPTIMIZATION, WEAPON_REFIT, FULL_SERVICE
+- Tech level requirements filter available services per station
+- Engineering skill checks determine success/failure (partial refund on failure)
+- Duration-based effects tracked across docking events
+
+#### 11. Crew Interactions (`CrewInteractions.lua`)
+Dynamic crew dialogue system:
+- Timer-based events (every 900s, 35% trigger chance)
+- Context-sensitive categories: idle chatter, danger alerts, trade suggestions, engineering skill checks, crew conflicts
+- Morale tracking affects dialogue tone
+
+### UI Integration
+
+#### Economy Dashboard — Station View Tab
+**Visible when docked** as an "Economy" tab alongside Lobby, Bulletin Board, Commodity Market, etc.
+Shows all economy data: events, supply chains, bounties, smuggling, passengers, services, crew, news.
+
+#### Economy Dashboard — Info View Tab
+**Accessible anytime** via F2 → "Economy" tab alongside Ship Info, Missions, Crew, etc.
+Same comprehensive economy overview available in flight.
+
+#### Bulletin Board Adverts
+All modules post interactive adverts on the station Bulletin Board when docked:
+- Bounty contracts, smuggling jobs, passenger transport, ship services, exploration data sales, system news, economic event alerts, supply chain progress
+
 ### Cool Events Log (`eventlog`)
 A small mod that logs game events (docking, undocking, hyperspace, collisions, etc.) to a text file at `user://mods/eventlog/event_log.txt`. Useful for external tools, simpits, speech synthesizers, or second-monitor displays.
 
@@ -163,10 +228,10 @@ Complete 3-star custom system (Rigil Kentaurus + Toliman + Proxima Centauri) wit
 ### Quick Test & Verification
 
 ```lua
-require('modules.QuickTest').Run()     -- Comprehensive verification
+require('modules.QuickTest').Run()     -- Comprehensive verification (all 11 modules)
 require('modules.QuickTest').Watch()   -- Real-time monitoring
 require('modules.QuickTest').Inspect() -- Detailed data dump
-require('modules.QuickTest').Stress()  -- Stability test (100 iterations)
+require('modules.QuickTest').Stress()  -- Stability test (100 iterations × all APIs)
 ```
 
 ### API Reference
@@ -174,6 +239,7 @@ require('modules.QuickTest').Stress()  -- Stability test (100 iterations)
 ```lua
 local E = require('modules.EconomyEnhancements')
 
+-- Core Economy
 E.GetVersion()                         --> "2.0.0"
 E.GetStatus()                          --> {enabled, version, system_events, npc_trade, supply_chains}
 E.GetSystemEvents()                    --> table of active events
@@ -184,6 +250,31 @@ E.GetSupplyChains()                    --> chain definitions
 E.GetChainOpportunities()              --> sorted by bonus potential
 E.GetChainProgress()                   --> {chain -> {commodity -> tonnes}}
 E.GetCommodityBonus(commodity)         --> 1.0 + bonus multiplier
+
+-- Expansion Modules
+local ER = require('modules.ExplorationRewards')
+ER.GetExploredCount()                  --> number of systems visited
+ER.GetUnsoldDataCount()                --> scan data sets available to sell
+
+local BB = require('modules.BountyBoard')
+BB.GetActiveBounties()                 --> array of active bounty contracts
+
+local SC = require('modules.SmugglingContracts')
+SC.GetActiveContracts()                --> array of active smuggling runs
+
+local PM = require('modules.PassengerMissions')
+PM.GetActiveTransports()               --> array of passenger jobs
+
+local SS = require('modules.StationServices')
+SS.GetActiveEffects()                  --> table of active ship effects
+SS.GetAvailableServices()              --> service type definitions
+
+local CI = require('modules.CrewInteractions')
+CI.GetMorale()                         --> crew morale percentage
+CI.GetInteractionCount()               --> total interactions triggered
+
+local NF = require('modules.SystemNewsFeed')
+NF.GetCurrentNews()                    --> array of news articles
 ```
 
 ### Credits & Attribution
