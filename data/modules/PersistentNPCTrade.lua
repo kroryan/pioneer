@@ -113,15 +113,28 @@ local function OnShipDestroyed(ship, attacker)
 	end
 end
 
--- Also track when jettisoned cargo is destroyed
+-- Also track when jettisoned cargo bodies are destroyed
+-- Note: CargoBody objects in Pioneer expose GetCargoType() method
 local function OnCargoDestroyed(cargoBody, attacker)
 	if not cargoBody then return end
-	-- CargoBody has a commodity type
-	local ok, commodity = pcall(function() return cargoBody.commodity end)
+	-- Try to get commodity type from the cargo body
+	local ok, commodity = pcall(function() return cargoBody:GetCargoType() end)
+	if not ok or not commodity then
+		-- Fallback: try the cargo property
+		ok, commodity = pcall(function() return cargoBody.cargo end)
+	end
 	if ok and commodity then
-		local name = commodity.name or tostring(commodity)
-		RecordCargoDestruction(name, 1)
-		stats.total_cargo_lost = stats.total_cargo_lost + 1
+		local name = nil
+		-- Get the commodity name string
+		if type(commodity) == "table" and commodity.name then
+			name = commodity.name
+		elseif type(commodity) == "string" then
+			name = commodity
+		end
+		if name then
+			RecordCargoDestruction(name, 1)
+			stats.total_cargo_lost = stats.total_cargo_lost + 1
+		end
 	end
 end
 

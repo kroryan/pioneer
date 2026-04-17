@@ -92,7 +92,9 @@ local CONFLICT_EVENTS = {
 local state = {
 	last_interaction_time = 0,
 	interaction_count = 0,
-	crew_morale = 100,   -- 0-100
+	crew_morale = 75,   -- 0-100, starts neutral-good
+	last_dock_time = 0,
+	hits_since_dock = 0,
 }
 
 local timer_started = false
@@ -145,6 +147,10 @@ end
 
 local function interpolateMsg(msg, vars)
 	return (msg:gsub("{(%w+)}", function(key) return vars[key] or key end))
+end
+
+local function adjustMorale(delta)
+	state.crew_morale = math.max(0, math.min(100, state.crew_morale + delta))
 end
 
 local function doIdleComment(crew)
@@ -215,22 +221,39 @@ local function doInteraction()
 		return
 	end
 
+	-- Morale-influenced interaction selection
+	-- Low morale = more complaints; high morale = more useful suggestions
 	local roll = Engine.rand:Number(1.0)
+	local morale_factor = state.crew_morale / 100.0
 
-	if roll < 0.30 then
-		-- Idle comment
+	if state.crew_morale < 30 then
+		-- Low morale: crew complains more
+		if roll < 0.5 then
+			local member = crew[Engine.rand:Integer(1, #crew)]
+			local LOW_MORALE_COMMENTS = {
+				"Commander, the crew's not happy. We've been taking too many hits.",
+				"Morale is low. Maybe we should find a safe port for a while.",
+				"The crew could use some shore leave. Just saying.",
+				"People are getting nervous. Too much danger, not enough rest.",
+			}
+			Comms.Message(LOW_MORALE_COMMENTS[Engine.rand:Integer(1, #LOW_MORALE_COMMENTS)], member.name)
+		else
+			doIdleComment(crew)
+		end
+	elseif roll < 0.30 then
 		doIdleComment(crew)
 	elseif roll < 0.50 then
-		-- Trade suggestion
 		doTradeSuggestion(crew)
+		-- Good trade suggestion slightly boosts morale
+		adjustMorale(1)
 	elseif roll < 0.65 then
-		-- Engineering event
 		doEngineeringEvent(crew)
 	elseif roll < 0.80 then
-		-- Context-sensitive comment (danger)
 		local system = Game.system
 		if system and system.lawlessness > 0.4 then
 			doDangerComment(crew)
+			-- Being in danger reduces morale slightly
+			adjustMorale(-1)
 		else
 			doIdleComment(crew)
 		end
@@ -243,6 +266,8 @@ local function doInteraction()
 				name2 = crew[math.min(2, #crew)].name,
 			}
 			Comms.Message(interpolateMsg(evt.msg, vars), "Crew")
+			-- Conflicts reduce morale
+			adjustMorale(-3)
 		else
 			doIdleComment(crew)
 		end
@@ -271,12 +296,24 @@ Event.Register("onGameStart", function()
 end)
 
 Event.Register("onPlayerDocked", function(ship, station)
+	-- Docking boosts morale (rest, resupply)
+	adjustMorale(5)
+	state.hits_since_dock = 0
+	state.last_dock_time = Game.time
+
 	-- Docked comment
 	local crew = getCrewMembers()
 	if Engine.rand:Number(1.0) < 0.5 then
 		if #crew > 0 then
 			local member = crew[Engine.rand:Integer(1, #crew)]
-			local msg = DOCKED_COMMENTS[Engine.rand:Integer(1, #DOCKED_COMMENTS)]
+			local msg
+			if state.crew_morale >= 80 then
+				msg = DOCKED_COMMENTS[Engine.rand:Integer(1, #DOCKED_COMMENTS)]
+			elseif state.crew_morale >= 40 then
+				msg = DOCKED_COMMENTS[Engine.rand:Integer(1, #DOCKED_COMMENTS)]
+			else
+				msg = "Finally. The crew could really use this break, Commander."
+			end
 			Comms.Message(msg, member.name)
 		else
 			local msg = COMPUTER_DOCKED[Engine.rand:Integer(1, #COMPUTER_DOCKED)]
@@ -311,21 +348,36 @@ end)
 
 Event.Register("onShipHit", function(ship, attacker)
 	if not ship or not ship:IsPlayer() then return end
+
+	-- Taking hits reduces morale
+	state.hits_since_dock = (state.hits_since_dock or 0) + 1
+	adjustMorale(-2)
+
 	local crew = getCrewMembers()
 	if #crew > 0 and Engine.rand:Number(1.0) < 0.3 then
 		local member = crew[Engine.rand:Integer(1, #crew)]
-		local msgs = {
-			"Shields holding! Return fire!",
-			"We're hit! Checking for damage...",
-			"Contact! We're under attack!",
-			"Damage report coming in... nothing critical yet.",
-		}
+		local msgs
+		if state.crew_morale > 50 then
+			msgs = {
+				"Shields holding! Return fire!",
+				"We're hit! Checking for damage...",
+				"Contact! We're under attack!",
+				"Damage report coming in... nothing critical yet.",
+			}
+		else
+			msgs = {
+				"We can't take much more of this!",
+				"Shields are taking a beating! Get us out of here!",
+				"Multiple impacts! Hull integrity dropping!",
+				"Commander, we need to disengage!",
+			}
+		end
 		Comms.ImportantMessage(msgs[Engine.rand:Integer(1, #msgs)], member.name)
 	end
 end)
 
 Event.Register("onGameEnd", function()
-	state = { last_interaction_time = 0, interaction_count = 0, crew_morale = 100 }
+	state = { last_interaction_time = 0, interaction_count = 0, crew_morale = 75, last_dock_time = 0, hits_since_dock = 0 }
 	timer_started = false
 end)
 
@@ -337,8 +389,10 @@ Serializer:Register("CrewInteractions",
 	function(data)
 		if data then
 			state = data
-			if not state.crew_morale then state.crew_morale = 100 end
+			if not state.crew_morale then state.crew_morale = 75 end
 			if not state.interaction_count then state.interaction_count = 0 end
+			if not state.hits_since_dock then state.hits_since_dock = 0 end
+			if not state.last_dock_time then state.last_dock_time = 0 end
 		end
 		timer_started = false
 		startTimer()

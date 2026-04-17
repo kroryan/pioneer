@@ -127,6 +127,40 @@ local function SnapshotPlayerCargo()
 	end
 end
 
+local function UpdateChainBonus(chain_key)
+	local chain = SupplyChains[chain_key]
+	if not chain then return end
+	local progress = chain_progress[chain_key] or {}
+	local nodes_active = 0
+	for _, node in ipairs(chain.nodes) do
+		local traded = progress[node.commodity] or 0
+		if traded >= 10 then
+			nodes_active = nodes_active + 1
+		end
+	end
+	local total_nodes = #chain.nodes
+	if nodes_active == 0 then
+		chain_bonuses[chain_key] = 0
+		return
+	end
+	local completion = nodes_active / total_nodes
+	local bonus = chain.base_bonus * completion + chain.per_node_bonus * nodes_active
+	chain_bonuses[chain_key] = math.min(bonus, MAX_CHAIN_BONUS)
+end
+
+local function RecordChainTrade(commodity_name, amount)
+	for chain_key, chain in pairs(SupplyChains) do
+		for _, node in ipairs(chain.nodes) do
+			if node.commodity == commodity_name then
+				if not chain_progress[chain_key] then chain_progress[chain_key] = {} end
+				chain_progress[chain_key][commodity_name] = (chain_progress[chain_key][commodity_name] or 0) + amount
+				UpdateChainBonus(chain_key)
+				break
+			end
+		end
+	end
+end
+
 local function DetectTrades(station)
 	local player = Game.player
 	if not player then return end
@@ -150,54 +184,8 @@ local function DetectTrades(station)
 end
 
 -- ============================================================================
--- CHAIN TRACKING
+-- CHAIN TRACKING (functions defined above DetectTrades)
 -- ============================================================================
-
-function RecordChainTrade(commodity_name, amount)
-	for chain_key, chain in pairs(SupplyChains) do
-		for _, node in ipairs(chain.nodes) do
-			if node.commodity == commodity_name then
-				if not chain_progress[chain_key] then
-					chain_progress[chain_key] = {}
-				end
-				chain_progress[chain_key][commodity_name] =
-					(chain_progress[chain_key][commodity_name] or 0) + amount
-
-				-- Recalculate bonus for this chain
-				UpdateChainBonus(chain_key)
-				break
-			end
-		end
-	end
-end
-
-function UpdateChainBonus(chain_key)
-	local chain = SupplyChains[chain_key]
-	if not chain then return end
-
-	local progress = chain_progress[chain_key] or {}
-	local nodes_active = 0
-
-	for _, node in ipairs(chain.nodes) do
-		local traded = progress[node.commodity] or 0
-		-- Need at least 10 tonnes traded to count as "active" node
-		if traded >= 10 then
-			nodes_active = nodes_active + 1
-		end
-	end
-
-	local total_nodes = #chain.nodes
-	if nodes_active == 0 then
-		chain_bonuses[chain_key] = 0
-		return
-	end
-
-	-- Bonus scales with completion: partial chains give partial bonus
-	local completion = nodes_active / total_nodes
-	local bonus = chain.base_bonus * completion + chain.per_node_bonus * nodes_active
-
-	chain_bonuses[chain_key] = math.min(bonus, MAX_CHAIN_BONUS)
-end
 
 -- ============================================================================
 -- PRICE BONUS APPLICATION
@@ -219,6 +207,58 @@ local function GetCommodityChainBonus(commodity_name)
 	end
 
 	return 1.0 + max_bonus
+end
+
+-- ============================================================================
+-- REAL PRICE BONUS: Apply chain bonuses to sell prices when player docks
+-- This gives the player better selling prices for commodities in completed chains
+-- Complementary to DynamicSystemEvents (which handles crisis events)
+-- ============================================================================
+
+-- Cache of original prices before bonus application
+local bonus_price_cache = {}
+
+local function ApplyChainBonusesAtStation(station)
+	local sta_key = tostring(station.path)
+	bonus_price_cache[sta_key] = {}
+
+	for chain_key, bonus in pairs(chain_bonuses) do
+		if bonus > 0 then
+			local chain = SupplyChains[chain_key]
+			if chain then
+				for _, node in ipairs(chain.nodes) do
+					local commodity = Commodities[node.commodity]
+					if commodity and not bonus_price_cache[sta_key][node.commodity] then
+						local ok, price = pcall(function() return station:GetCommodityPrice(commodity) end)
+						if ok and price then
+							bonus_price_cache[sta_key][node.commodity] = price
+							-- Increase sell price by chain bonus (player gets more money when selling)
+							local chain_mult = GetCommodityChainBonus(node.commodity)
+							if chain_mult > 1.0 then
+								local newPrice = math.floor(price * chain_mult)
+								pcall(function() station:SetCommodityPrice(commodity, newPrice) end)
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+local function RestoreChainBonusesAtStation(station)
+	local sta_key = tostring(station.path)
+	local cached = bonus_price_cache[sta_key]
+	if not cached then return end
+
+	for commodity_name, orig_price in pairs(cached) do
+		local commodity = Commodities[commodity_name]
+		if commodity then
+			pcall(function() station:SetCommodityPrice(commodity, orig_price) end)
+		end
+	end
+
+	bonus_price_cache[sta_key] = nil
 end
 
 -- ============================================================================
@@ -313,10 +353,14 @@ end
 
 Event.Register("onPlayerDocked", function(player, station)
 	SnapshotPlayerCargo()
+	-- Apply chain trading bonuses to station prices
+	ApplyChainBonusesAtStation(station)
 end)
 
 Event.Register("onPlayerUndocked", function(player, station)
 	DetectTrades(station)
+	-- Restore original prices
+	RestoreChainBonusesAtStation(station)
 end)
 
 Event.Register("onCreateBB", function(station)
@@ -339,6 +383,7 @@ Event.Register("onGameEnd", function()
 	chain_progress = {}
 	chain_bonuses = {}
 	cargo_on_dock = {}
+	bonus_price_cache = {}
 	bb_ads = {}
 end)
 

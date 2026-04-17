@@ -155,14 +155,30 @@ local function onChat(form, ref, option)
 		end
 
 		if sold > 0 then
+			-- Apply StationServices sensor calibration bonus if active
+			local sensorBonus = 0
+			local ok_ss, SS = pcall(function() return require('modules.StationServices') end)
+			if ok_ss and SS and SS.GetExplorationBonus then
+				local ok_b, bonus = pcall(function() return SS.GetExplorationBonus() end)
+				if ok_b and bonus and bonus > 0 then
+					sensorBonus = bonus
+					earned = math.floor(earned * (1.0 + bonus))
+				end
+			end
+
 			PlayerState.AddMoney(earned)
 			state.data_sold_count = state.data_sold_count + sold
 			state.unsold_data = {}
 
+			local bonusMsg = ""
+			if sensorBonus > 0 then
+				bonusMsg = string.format("\n(Sensor calibration bonus: +%d%%)", math.floor(sensorBonus * 100))
+			end
+
 			form:SetMessage(string.format(
-				"Excellent! Data from %d system%s sold for %s.\n\n" ..
+				"Excellent! Data from %d system%s sold for %s.%s\n\n" ..
 				"Total systems catalogued: %d\nKeep exploring, Commander!",
-				sold, sold ~= 1 and "s" or "", Format.Money(earned, false), state.data_sold_count
+				sold, sold ~= 1 and "s" or "", Format.Money(earned, false), bonusMsg, state.data_sold_count
 			))
 		else
 			form:SetMessage("No data to sell.")

@@ -298,7 +298,11 @@ end
 
 -- ============================================================================
 -- PRICE EFFECTS: Apply on dock, restore on undock
--- Same pattern as the built-in NewsEventCommodity module.
+-- Works alongside the built-in NewsEventCommodity module.
+-- NEC sets prices first (registered earlier), then DSE layers on top.
+-- On undock, DSE restores to NEC-modified prices, then NEC restores its own.
+-- Net effect: both systems' price changes are visible while docked.
+-- Also integrates with SupplyChainNetwork and StationServices bonuses.
 -- ============================================================================
 
 local function ApplyEffectsAtStation(station)

@@ -379,10 +379,20 @@ end)
 Event.Register("onPlayerDocked", function(player, station)
 	for ref, mission in pairs(missions) do
 		if mission.complete then
-			PlayerState.AddMoney(mission.reward)
+			-- Apply StationServices weapon refit bonus if active
+			local finalReward = mission.reward
+			local ok_ss, SS = pcall(function() return require('modules.StationServices') end)
+			if ok_ss and SS and SS.GetBountyBonus then
+				local ok_b, bonus = pcall(function() return SS.GetBountyBonus() end)
+				if ok_b and bonus and bonus > 0 then
+					finalReward = math.floor(finalReward * (1.0 + bonus))
+				end
+			end
+
+			PlayerState.AddMoney(finalReward)
 			Comms.ImportantMessage(
 				string.format("Bounty collected: %s for the elimination of %s.",
-					Format.Money(mission.reward, false), mission.targetName),
+					Format.Money(finalReward, false), mission.targetName),
 				mission.client.name
 			)
 

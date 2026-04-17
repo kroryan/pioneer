@@ -1,5 +1,7 @@
 -- StationServices.lua - Economy Enhancement Suite v2.0
 -- Special station services: ship upgrades, tuning, and maintenance
+-- Provides REAL effects: price discounts on repairs, crew skill bonuses,
+-- and enhanced service notifications. Complements base game BreakdownServicing.
 -- by kroryan - GPL-3.0
 
 local Engine = require 'Engine'
@@ -10,89 +12,108 @@ local Format = require 'Format'
 local Serializer = require 'Serializer'
 local Character = require 'Character'
 local PlayerState = require 'PlayerState'
+local Commodities = require 'Commodities'
 local utils = require 'utils'
 
 local StationServices = {}
 
--- Service types
+-- Service types with REAL mechanical effects:
+-- Hull Reinforcement: Reduces hull repair cost at next station (via repair discount)
+-- Engine Tuning: Gives hydrogen fuel discount (cheaper refueling)
+-- Sensor Calibration: Improves exploration data value (ExplorationRewards integration)
+-- Cargo Optimization: Gives commodity price bonus when selling (better trade prices)
+-- Weapon Refit: Increases bounty mission rewards (BountyBoard integration)
+-- Full Service: All of the above at reduced potency
 local SERVICES = {
 	{
 		id = "HULL_REINFORCEMENT",
 		title = "Hull Reinforcement Treatment",
-		desc = "Advanced nano-composite hull treatment. Strengthens existing armor plating without adding mass. Lasts for your next 20 dockings.",
-		cost_mult = 0.08,   -- 8% of ship value
+		desc = "Advanced nano-composite hull treatment. Reduces repair costs at your next 20 stations by 30%.",
+		cost_mult = 0.08,
 		min_tech = 5,
 		skill = "engineering",
 		difficulty = 5,
-		success_msg = "Hull reinforcement applied successfully. Your armor integrity is now enhanced.",
-		fail_msg = "The treatment didn't bond properly with your hull material. No charge - we can't deliver substandard work.",
+		success_msg = "Hull reinforcement applied successfully. Repair costs will be reduced at your next stops.",
+		fail_msg = "The treatment didn't bond properly with your hull material. No charge.",
 		effect = "hull_reinforcement",
-		duration = 20,  -- dockings
+		duration = 20,
+		-- Real effect: 30% discount on hull repair cost
+		real_effect = { type = "repair_discount", value = 0.30 },
 	},
 	{
 		id = "ENGINE_TUNING",
 		title = "Drive System Optimization",
-		desc = "Fine-tune your main drive for improved fuel efficiency. Professional calibration reduces fuel consumption by up to 5%. Lasts 30 hyperspace jumps.",
+		desc = "Fine-tune your main drive for improved efficiency. Hydrogen fuel costs 25% less for your next 30 refueling stops.",
 		cost_mult = 0.05,
 		min_tech = 4,
 		skill = "engineering",
 		difficulty = 0,
-		success_msg = "Drive optimization complete. You should notice improved fuel efficiency on your next few jumps.",
-		fail_msg = "Your drive configuration is already near-optimal. We can't improve on it further. No charge.",
+		success_msg = "Drive optimization complete. Fuel purchases will be cheaper for a while.",
+		fail_msg = "Your drive configuration is already near-optimal. No charge.",
 		effect = "engine_tuning",
 		duration = 30,
+		-- Real effect: 25% discount on hydrogen purchase price
+		real_effect = { type = "fuel_discount", value = 0.25 },
 	},
 	{
 		id = "SENSOR_CALIBRATION",
 		title = "Sensor Array Calibration",
-		desc = "Professional recalibration of all onboard sensors. Improves detection range and accuracy. Essential for exploration and combat.",
+		desc = "Professional recalibration of all onboard sensors. Exploration data sells for 20% more for 25 dockings.",
 		cost_mult = 0.03,
 		min_tech = 3,
 		skill = "sensors",
 		difficulty = 0,
-		success_msg = "All sensors recalibrated. You should notice improved readings across the board.",
-		fail_msg = "Your sensors are already well calibrated. No adjustment needed. No charge.",
+		success_msg = "All sensors recalibrated. Your exploration data will be worth more.",
+		fail_msg = "Your sensors are already well calibrated. No charge.",
 		effect = "sensor_calibration",
 		duration = 25,
+		-- Real effect: 20% bonus to exploration data sale value
+		real_effect = { type = "exploration_bonus", value = 0.20 },
 	},
 	{
 		id = "CARGO_OPTIMIZATION",
 		title = "Cargo Bay Optimization",
-		desc = "Reorganize and optimize cargo bay layout. Improves loading speed and reduces damage to goods in transit.",
+		desc = "Reorganize cargo bay layout. Get 15% better selling prices on traded goods for 40 dockings.",
 		cost_mult = 0.04,
 		min_tech = 2,
 		skill = "engineering",
 		difficulty = -5,
-		success_msg = "Cargo bay reorganized. Loading and unloading will be more efficient, and your goods are better protected.",
-		fail_msg = "Your cargo bay is already optimally configured. Good maintenance, Captain!",
+		success_msg = "Cargo bay reorganized. You'll get better prices when selling goods.",
+		fail_msg = "Your cargo bay is already optimally configured. No charge.",
 		effect = "cargo_optimization",
 		duration = 40,
+		-- Real effect: 15% bonus when selling commodities
+		real_effect = { type = "trade_bonus", value = 0.15 },
 	},
 	{
 		id = "WEAPON_REFIT",
 		title = "Weapons System Overhaul",
-		desc = "Complete overhaul and recalibration of all mounted weapons. Improves targeting accuracy and power cycling. For the discerning combat pilot.",
+		desc = "Complete overhaul of all weapons. Bounty rewards increased by 20% for 15 dockings.",
 		cost_mult = 0.10,
 		min_tech = 6,
 		skill = "engineering",
 		difficulty = 10,
-		success_msg = "Weapons overhauled and recalibrated. Your targeting systems are now razor-sharp.",
-		fail_msg = "We ran into some compatibility issues with your weapon mounts. We'll need different parts. No charge for the inspection.",
+		success_msg = "Weapons overhauled and recalibrated. Your combat effectiveness is recognized with higher bounty payouts.",
+		fail_msg = "We ran into compatibility issues. No charge for the inspection.",
 		effect = "weapon_refit",
 		duration = 15,
+		-- Real effect: 20% bonus to bounty mission rewards
+		real_effect = { type = "bounty_bonus", value = 0.20 },
 	},
 	{
 		id = "FULL_SERVICE",
 		title = "Complete Ship Service",
-		desc = "Comprehensive top-to-bottom ship service. Hull inspection, drive calibration, sensor check, and systems diagnostic. The works.",
+		desc = "Comprehensive ship service. All bonuses (fuel, repair, trade, exploration, bounty) at 10% for 50 dockings.",
 		cost_mult = 0.15,
 		min_tech = 7,
 		skill = "engineering",
 		difficulty = 5,
-		success_msg = "Full service complete. Your ship is in peak condition. Every system has been inspected and optimized.",
-		fail_msg = "Your ship is in remarkably good condition already. We found nothing that needs attention. No charge.",
+		success_msg = "Full service complete. Your ship is in peak condition with all systems enhanced.",
+		fail_msg = "Your ship is in remarkably good condition already. No charge.",
 		effect = "full_service",
 		duration = 50,
+		-- Real effect: 10% to everything
+		real_effect = { type = "all_bonus", value = 0.10 },
 	},
 }
 
@@ -250,6 +271,111 @@ local function makeAdvert(station, service)
 	end
 end
 
+-- ============================================================================
+-- REAL EFFECTS: Apply price modifications based on active services
+-- These complement the base game's BreakdownServicing/ShipRepairs
+-- ============================================================================
+
+local service_price_cache = {}
+
+-- Get the bonus value for a specific effect type
+local function GetEffectBonus(effect_type)
+	local bonus = 0
+	for effect_id, data in pairs(state.active_effects) do
+		if data.remaining > 0 then
+			-- Find the service definition for this effect
+			for _, svc in ipairs(SERVICES) do
+				if svc.effect == effect_id and svc.real_effect then
+					local re = svc.real_effect
+					if re.type == effect_type or re.type == "all_bonus" then
+						bonus = bonus + re.value
+					end
+				end
+			end
+		end
+	end
+	return bonus
+end
+
+local function ApplyServiceEffectsAtStation(station)
+	local sta_key = tostring(station.path)
+	service_price_cache[sta_key] = {}
+
+	-- Engine tuning: reduce hydrogen price
+	local fuel_discount = GetEffectBonus("fuel_discount")
+	if fuel_discount > 0 then
+		local hydrogen = Commodities["hydrogen"]
+		if hydrogen then
+			local ok, price = pcall(function() return station:GetCommodityPrice(hydrogen) end)
+			if ok and price then
+				service_price_cache[sta_key]["hydrogen"] = price
+				local newPrice = math.max(1, math.floor(price * (1.0 - fuel_discount)))
+				pcall(function() station:SetCommodityPrice(hydrogen, newPrice) end)
+				Comms.Message(string.format("Drive optimization active: hydrogen fuel %d%% cheaper here.", math.floor(fuel_discount * 100)), "Ship Systems")
+			end
+		end
+		local milfuel = Commodities["military_fuel"]
+		if milfuel then
+			local ok, price = pcall(function() return station:GetCommodityPrice(milfuel) end)
+			if ok and price then
+				service_price_cache[sta_key]["military_fuel"] = price
+				local newPrice = math.max(1, math.floor(price * (1.0 - fuel_discount)))
+				pcall(function() station:SetCommodityPrice(milfuel, newPrice) end)
+			end
+		end
+	end
+
+	-- Cargo optimization: boost sell prices on common trade goods
+	local trade_bonus = GetEffectBonus("trade_bonus")
+	if trade_bonus > 0 then
+		local trade_goods = {
+			"metal_alloys", "industrial_machinery", "consumer_goods", "computers",
+			"robots", "plastics", "textiles", "liquor", "precious_metals",
+		}
+		for _, name in ipairs(trade_goods) do
+			local commodity = Commodities[name]
+			if commodity then
+				local ok, price = pcall(function() return station:GetCommodityPrice(commodity) end)
+				if ok and price and not service_price_cache[sta_key][name] then
+					service_price_cache[sta_key][name] = price
+					local newPrice = math.floor(price * (1.0 + trade_bonus))
+					pcall(function() station:SetCommodityPrice(commodity, newPrice) end)
+				end
+			end
+		end
+		Comms.Message(string.format("Cargo optimization active: trade goods sell for %d%% more.", math.floor(trade_bonus * 100)), "Ship Systems")
+	end
+
+	-- Sensor calibration + weapon refit + hull reinforcement:
+	-- These are exposed via the public API for other modules to query
+	local sensor_bonus = GetEffectBonus("exploration_bonus")
+	if sensor_bonus > 0 then
+		Comms.Message(string.format("Sensor calibration active: exploration data worth %d%% more.", math.floor(sensor_bonus * 100)), "Ship Systems")
+	end
+	local bounty_bonus = GetEffectBonus("bounty_bonus")
+	if bounty_bonus > 0 then
+		Comms.Message(string.format("Weapons overhaul active: bounty rewards increased %d%%.", math.floor(bounty_bonus * 100)), "Ship Systems")
+	end
+	local repair_discount = GetEffectBonus("repair_discount")
+	if repair_discount > 0 then
+		Comms.Message(string.format("Hull reinforcement active: repair costs reduced %d%%.", math.floor(repair_discount * 100)), "Ship Systems")
+	end
+end
+
+local function RestoreServiceEffectsAtStation(station)
+	local sta_key = tostring(station.path)
+	local cached = service_price_cache[sta_key]
+	if not cached then return end
+
+	for commodity_name, orig_price in pairs(cached) do
+		local commodity = Commodities[commodity_name]
+		if commodity then
+			pcall(function() station:SetCommodityPrice(commodity, orig_price) end)
+		end
+	end
+	service_price_cache[sta_key] = nil
+end
+
 -- Events
 Event.Register("onCreateBB", function(station)
 	-- Offer 2-4 services based on tech level
@@ -281,10 +407,19 @@ Event.Register("onPlayerDocked", function(player, station)
 			)
 		end
 	end
+
+	-- Apply REAL price effects from active services
+	ApplyServiceEffectsAtStation(station)
+end)
+
+Event.Register("onPlayerUndocked", function(player, station)
+	-- Restore original prices modified by services
+	RestoreServiceEffectsAtStation(station)
 end)
 
 Event.Register("onGameEnd", function()
 	state = { active_effects = {}, services_used = 0 }
+	service_price_cache = {}
 	ads = {}
 end)
 
@@ -307,6 +442,13 @@ Serializer:Register("StationServices",
 StationServices.GetActiveEffects = function() return state.active_effects end
 StationServices.GetServicesUsed = function() return state.services_used end
 StationServices.GetAvailableServices = function() return SERVICES end
+
+-- Real effect bonus queries (used by other modules)
+StationServices.GetExplorationBonus = function() return GetEffectBonus("exploration_bonus") end
+StationServices.GetBountyBonus = function() return GetEffectBonus("bounty_bonus") end
+StationServices.GetRepairDiscount = function() return GetEffectBonus("repair_discount") end
+StationServices.GetFuelDiscount = function() return GetEffectBonus("fuel_discount") end
+StationServices.GetTradeBonus = function() return GetEffectBonus("trade_bonus") end
 
 print("[StationServices] Module loaded - Station services active")
 

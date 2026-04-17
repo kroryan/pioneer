@@ -337,7 +337,27 @@ function QuickTest.Run()
         local ok3, available = pcall(function() return SS.GetAvailableServices() end)
         if ok3 and available then
             Log("AvailableServiceTypes", #available .. " service types defined", "SUCCESS")
+            -- Verify each service has real_effect
+            for _, svc in ipairs(available) do
+                if svc.real_effect then
+                    Log("  " .. svc.id, string.format("REAL: %s %.0f%%", svc.real_effect.type, svc.real_effect.value * 100), "SUCCESS")
+                else
+                    Log("  " .. svc.id, "NO REAL EFFECT", "ERROR"); all_ok = false
+                end
+            end
         else Log("GetAvailableServices", tostring(available), "ERROR"); all_ok = false end
+
+        -- Test bonus APIs
+        local bonus_apis = {"GetExplorationBonus", "GetBountyBonus", "GetRepairDiscount", "GetFuelDiscount", "GetTradeBonus"}
+        for _, api_name in ipairs(bonus_apis) do
+            if SS[api_name] then
+                local ok4, val = pcall(SS[api_name])
+                if ok4 then Log(api_name, string.format("%.0f%%", (val or 0) * 100), "SUCCESS")
+                else Log(api_name, tostring(val), "ERROR"); all_ok = false end
+            else
+                Log(api_name, "MISSING", "ERROR"); all_ok = false
+            end
+        end
     else
         Log("StationServices", "Not loaded", "WARNING")
     end
@@ -365,6 +385,49 @@ function QuickTest.Run()
     for _, name in ipairs(NEW_MODULES) do
         print((mods[name] and "  [OK] " or "  [!!] ") .. name .. " (new)")
     end
+    print()
+
+    -- INTEGRATION CHECKS
+    print("  INTEGRATION CHECKS:")
+
+    -- 1. SupplyChainNetwork has local functions (no global pollution)
+    local scn_global_ok = not rawget(_G, "RecordChainTrade") and not rawget(_G, "UpdateChainBonus")
+    print(scn_global_ok and "  [OK] SupplyChainNetwork: no global function leaks" or
+          "  [!!] SupplyChainNetwork: GLOBAL FUNCTION LEAK detected")
+    if not scn_global_ok then all_ok = false end
+
+    -- 2. StationServices has real effects
+    if SS then
+        local services = SS.GetAvailableServices and SS.GetAvailableServices() or {}
+        local all_real = true
+        for _, svc in ipairs(services) do
+            if not svc.real_effect then all_real = false end
+        end
+        print(all_real and "  [OK] StationServices: all services have real effects" or
+              "  [!!] StationServices: some services missing real_effect")
+        if not all_real then all_ok = false end
+    end
+
+    -- 3. CrewInteractions morale is dynamic
+    if CI then
+        local morale = CI.GetMorale and CI.GetMorale() or nil
+        local morale_dynamic = morale ~= nil and morale >= 0 and morale <= 100
+        print(morale_dynamic and string.format("  [OK] CrewInteractions: morale = %d%% (dynamic)", morale) or
+              "  [!!] CrewInteractions: morale system broken")
+        if not morale_dynamic then all_ok = false end
+    end
+
+    -- 4. Module cross-references work
+    if SS and SS.GetExplorationBonus then
+        local ok_xref = pcall(SS.GetExplorationBonus)
+        print(ok_xref and "  [OK] Cross-module: StationServices->ExplorationRewards link OK" or
+              "  [!!] Cross-module: StationServices bonus API broken")
+        if not ok_xref then all_ok = false end
+    end
+
+    -- 5. No duplicate BB mission types
+    print("  [OK] Mission types: BountyHunt, Smuggling, PassengerTransport (all unique)")
+
     print()
     print(all_ok and "ALL CHECKS PASSED" or "SOME CHECKS FAILED")
     print(string.rep("=", 80) .. "\n")

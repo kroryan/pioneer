@@ -351,10 +351,10 @@ local function drawEconomy()
 		-- === CREW STATUS ===
 		drawSection("CREW STATUS", function()
 			local CI = getModule('CrewInteractions')
-			local morale = 100
+			local morale = 75
 			local interactions = 0
 			if CI then
-				pcall(function() morale = CI.GetMorale() or 100 end)
+				pcall(function() morale = CI.GetMorale() or 75 end)
 				pcall(function() interactions = CI.GetInteractionCount() or 0 end)
 			end
 
@@ -365,13 +365,39 @@ local function drawEconomy()
 				end)
 			end)
 
-			textTable.drawTable(2, nil, {
+			local moraleLabel = "Normal"
+			if morale >= 80 then moraleLabel = "High"
+			elseif morale < 50 then moraleLabel = "Low" end
+
+			local rows = {
 				separated = true,
 				{ "Stat", "Value", font = orbiteer.body },
 				{ "Crew Members", tostring(crewCount) },
-				{ "Morale", tostring(morale) .. "%" },
+				{ "Morale", string.format("%d%% (%s)", morale, moraleLabel) },
 				{ "Interactions", tostring(interactions) },
-			})
+			}
+
+			-- Show active service bonuses
+			local SS = getModule('StationServices')
+			if SS then
+				local bonusNames = {
+					{"GetExplorationBonus", "Sensor Bonus"},
+					{"GetBountyBonus", "Bounty Bonus"},
+					{"GetFuelDiscount", "Fuel Discount"},
+					{"GetTradeBonus", "Trade Bonus"},
+					{"GetRepairDiscount", "Repair Discount"},
+				}
+				for _, bn in ipairs(bonusNames) do
+					if SS[bn[1]] then
+						local ok, val = pcall(SS[bn[1]])
+						if ok and val and val > 0 then
+							table.insert(rows, { bn[2], string.format("+%d%%", math.floor(val * 100)) })
+						end
+					end
+				end
+			end
+
+			textTable.drawTable(2, nil, rows)
 		end)
 
 	end)

@@ -108,9 +108,18 @@ Please see [Changelog.txt](https://github.com/pioneerspacesim/pioneer/blob/maste
 
 This build includes the following enhancements:
 
-### Economy Enhancement Suite v2.0
+### Economy Enhancement Suite v2.1
 
-A comprehensive economic simulation system using **real Pioneer APIs** (`SetCommodityPrice`, `SetCommodityStock`, `AddCommodityStock`, `CargoManager`, `BulletinBoard`) to produce visible in-game effects on station prices, stock levels, and the bulletin board.
+A comprehensive economic simulation system using **real Pioneer APIs** (`SetCommodityPrice`, `SetCommodityStock`, `AddCommodityStock`, `CargoManager`, `BulletinBoard`) to produce visible in-game effects on station prices, stock levels, and the bulletin board. All modules complement base game systems without duplication.
+
+**v2.1 Changes:**
+- Supply chain bonuses now modify real station prices via `SetCommodityPrice`
+- Station services have real economic effects (fuel discounts, trade bonuses, exploration/bounty multipliers)
+- Dynamic crew morale: +5 on dock, -2 per hit, affects dialogue
+- Cross-module integration: ExplorationRewards × StationServices sensor bonus, BountyBoard × weapon refit bonus
+- Fixed NPC cargo detection, eliminated global function leaks
+- Price layering: all modules cache-and-restore in correct order (NEC → DSE → SCN → SS)
+- UI: color-coded morale, active service bonus display
 
 **Modules Included:**
 
@@ -149,6 +158,8 @@ Detects **real player trades** by comparing cargo on dock vs undock:
 | Industrial Base | carbon_ore → plastics → industrial_machinery → mining_machinery | 16% | +8% |
 
 - 10 tonnes traded activates a chain node; cumulative bonuses up to 50% cap
+- **Bonus formula**: `base_bonus × (active/total) + per_node_bonus × active_nodes`
+- **Real price modification**: chain bonuses applied via `SetCommodityPrice` on dock, restored on undock
 - BulletinBoard advert shows chain progress with [OK]/[  ] markers
 
 #### 4. Economy Enhancements Master Module (`EconomyEnhancements.lua`)
@@ -193,17 +204,29 @@ Contraband hauling for profit:
 - Registered as mission type "PassengerTransport"
 
 #### 10. Station Services (`StationServices.lua`)
-6 ship upgrade services available at stations:
-- HULL_REINFORCEMENT, ENGINE_TUNING, SENSOR_CALIBRATION, CARGO_OPTIMIZATION, WEAPON_REFIT, FULL_SERVICE
+6 ship upgrade services with **real economic effects**:
+
+| Service | Effect | Value |
+|---------|--------|-------|
+| Hull Reinforcement | Repair cost discount | 10% |
+| Engine Tuning | Fuel price discount (hydrogen) | 15% |
+| Sensor Calibration | Exploration data bonus | 20% |
+| Cargo Optimization | Trade goods price bonus | 15% |
+| Weapon Refit | Bounty reward bonus | 25% |
+| Full Service | All bonuses combined | 30% |
+
 - Tech level requirements filter available services per station
 - Engineering skill checks determine success/failure (partial refund on failure)
-- Duration-based effects tracked across docking events
+- Active bonuses modify real station prices via `SetCommodityPrice`
+- Cross-module: ExplorationRewards and BountyBoard query bonuses via `GetExplorationBonus()` / `GetBountyBonus()`
 
 #### 11. Crew Interactions (`CrewInteractions.lua`)
-Dynamic crew dialogue system:
+Dynamic crew dialogue and morale system:
 - Timer-based events (every 900s, 35% trigger chance)
 - Context-sensitive categories: idle chatter, danger alerts, trade suggestions, engineering skill checks, crew conflicts
-- Morale tracking affects dialogue tone
+- **Dynamic morale**: starts at 75, +5 on dock, -2 per combat hit, -1/-3 for danger/conflicts
+- Morale influences dialogue tone: low morale → complaints, high morale → confidence
+- Color-coded morale display in Economy UI (green ≥70, yellow ≥40, red <40)
 
 ### UI Integration
 
@@ -218,6 +241,15 @@ Same comprehensive economy overview available in flight.
 #### Bulletin Board Adverts
 All modules post interactive adverts on the station Bulletin Board when docked:
 - Bounty contracts, smuggling jobs, passenger transport, ship services, exploration data sales, system news, economic event alerts, supply chain progress
+
+#### Price Layering Order
+All price-modifying modules use cache-and-restore on dock/undock:
+1. Base game `NewsEventCommodity` (registered first)
+2. `DynamicSystemEvents` — crisis events, caches NEC prices
+3. `SupplyChainNetwork` — chain bonuses, caches DSE prices
+4. `StationServices` — fuel/trade discounts, caches chain prices
+
+All restore in reverse on undock — no permanent price corruption.
 
 ### Cool Events Log (`eventlog`)
 A small mod that logs game events (docking, undocking, hyperspace, collisions, etc.) to a text file at `user://mods/eventlog/event_log.txt`. Useful for external tools, simpits, speech synthesizers, or second-monitor displays.
