@@ -40,9 +40,12 @@ Name: "dutch"; MessagesFile: "compiler:Languages\Dutch.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+Name: "reshade"; Description: "Install ReShade 5 post-processing support (requires separate ReShade download)"; GroupDescription: "Post-processing:"
 
 [Files]
 Source: "{#InstallSource}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
+; ReShade addon DLL - configures depth buffer for Pioneer's MSAA render targets
+Source: "D:\source\Pioneer\pioneer\pioneer-reshade.addon"; DestDir: "{app}"; Flags: ignoreversion; Tasks: reshade
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
@@ -51,6 +54,29 @@ Name: "{commondesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: desk
 
 [InstallDelete]
 Type: filesandordirs; Name: "{app}"
+
+[Code]
+procedure ReShadeInfoPage();
+begin
+  if WizardIsTaskSelected('reshade') then
+    MsgBox(
+      'ReShade 5 post-processing support has been installed.' + #13#10 + #13#10 +
+      'To enable visual effects (ambient occlusion, color grading, etc.) you also need:' + #13#10 +
+      '  1. Download ReShade 5 from https://reshade.me' + #13#10 +
+      '  2. Run the ReShade installer' + #13#10 +
+      '  3. Select pioneer.exe in your install folder' + #13#10 +
+      '  4. Choose OpenGL as the rendering API' + #13#10 +
+      '  5. Install your preferred shader packs' + #13#10 + #13#10 +
+      'The pioneer-reshade.addon file is already installed and will be' + #13#10 +
+      'auto-detected by ReShade to configure depth buffer access.',
+      mbInformation, MB_OK);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssDone then
+    ReShadeInfoPage();
+end;
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent

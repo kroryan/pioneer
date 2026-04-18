@@ -117,3 +117,5 @@ compile
 
 !data/modules/Debug
 *.lnk
+build_reshade_log.txt
+pioneer-reshade.addon

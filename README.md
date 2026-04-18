@@ -309,6 +309,122 @@ local NF = require('modules.SystemNewsFeed')
 NF.GetCurrentNews()                    --> array of news articles
 ```
 
+### Fleet War Mod (`FleetWar`)
+
+Adds faction fleet battles to conflict zones without touching any C++ code.
+
+**Files:**
+```
+data/modules/FleetWar.lua              ← main entry, events, serialization
+data/modules/FleetWar/WarFactions.lua  ← conflict condition logic
+data/modules/FleetWar/BattleManager.lua← spawning, tracking, AI management
+data/modules/FleetWar/WarDisplay.lua   ← Bulletin Board integration
+```
+
+**How it works:**
+- On `onEnterSystem`: evaluates system lawlessness + faction → may spawn a fleet battle
+- Two sides spawn near the star (1–3 AU): Government side uses police ships, Rebel side uses pirate ships
+- Ships engage autonomously via `AIKill`. Periodic timer (45 s) reassigns targets when enemies die
+- Ships below 20% hull retreat (AI cancelled, they drift)
+- Battle concludes when one side reaches 0 ships — Comms message sent to player
+- Player can participate: kill side-A ships → recorded as working for side-B → 3000 cr/kill if their side wins
+- Concluded battles posted to Bulletin Boards as news adverts
+- Complements `DynamicSystemEvents`: if a Civil War event is active, fleet size increases by +2
+
+**Trigger conditions:**
+| Condition | Value |
+|-----------|-------|
+| Min lawlessness | 25% |
+| Spawn chance per system entry | 40% |
+| Requires | inhabited system + faction |
+
+**Fleet size by lawlessness:**
+| Range | Ships per side |
+|-------|---------------|
+| 25–35% | 3 |
+| 35–55% | 5 |
+| 55–75% | 7 |
+| 75–100% | 9 (+2 if Civil War event active) |
+
+**Zero overlap with existing systems:**
+- Serializer key `"FleetWar"` (unique vs `"Pirates"` and `"DynamicSystemEvents"`)
+- Only tracks ships it spawned via `ship_set` O(1) lookup — never touches Pirates or Police ships
+- Reads DSE state but never modifies it
+- No global variable pollution
+
+**API (for QuickTest / inter-module):**
+```lua
+local FW = require 'modules.FleetWar'
+FW.GetVersion()       -- "1.0.0"
+FW.GetActiveBattle()  -- battle table or nil
+FW.GetBattleHistory() -- array of concluded battle results
+FW.GetStats()         -- { active, total_battles, government_wins, rebel_wins, draws, ... }
+```
+
+**QuickTest integration:**
+```lua
+require('modules.QuickTest').Run()   -- includes FleetWar section
+require('modules.QuickTest').Watch() -- shows active battle status
+```
+
+---
+
+### ReShade 5 Post-Processing Support
+
+This build includes native ReShade 5 support for advanced visual post-processing (ambient occlusion, depth of field, color grading, bloom, sharpening, etc.).
+
+#### Third-Party Dependencies
+
+ReShade headers are hosted in the companion repository:
+**[kroryan/pioneer-thirdparty](https://github.com/kroryan/pioneer-thirdparty)** — fork of `pioneerspacesim/pioneer-thirdparty`
+Located at: `win32/include/reshade/` (ReShade API v19, BSD-3-Clause OR MIT)
+
+CMakeLists uses this fork automatically for MSVC builds:
+```cmake
+set(RESHADE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../pioneer-thirdparty/win32/include/reshade)
+```
+
+#### What's Included in This Build
+
+| File | Purpose |
+|------|---------|
+| `pioneer-reshade.addon` | Auto-loaded by ReShade — configures depth buffer for Pioneer's MSAA OpenGL targets |
+
+The addon sets these ReShade parameters on startup:
+- Depth input: standard GL (0=near, 1=far), Y-axis flipped (OpenGL convention)
+- Aspect ratio heuristics: enabled (finds correct depth buffer among MSAA FBOs)
+- Far plane: 10,000,000 units (space sim scale)
+
+#### Installation (Windows)
+
+1. Download **ReShade 5** from [reshade.me](https://reshade.me)
+2. Run the installer and select `pioneer.exe`
+3. Choose **OpenGL** as the graphics API
+4. Select your preferred shader packs (iMMERSE, qUINT, etc.)
+5. The `pioneer-reshade.addon` is already installed by the setup — ReShade detects it automatically
+
+#### Usage
+
+- Press `Home` in-game to open the ReShade overlay
+- The Pioneer addon configures depth access automatically — effects like MXAO, DOF, and RTGI work out of the box
+- Recommended shaders for space: `qUINT_mxao.fx` (ambient occlusion), `Bloom.fx`, `Levels.fx`
+
+#### Linux / AppImage
+
+ReShade is Windows-only. For Linux post-processing, use [vkBasalt](https://github.com/DadSchoorse/vkBasalt) (Vulkan) or [gamescope](https://github.com/ValveSoftware/gamescope) filters. Pioneer's OpenGL renderer does not currently support vkBasalt natively.
+
+#### Building the Addon from Source
+
+```bash
+# MSVC (Windows) — builds pioneer-reshade.addon automatically with the main project
+cmake --build out/build/x64-Release --target pioneer-reshade
+
+# The addon uses header-only ReShade API — no ReShade library linkage required
+# Headers fetched from kroryan/pioneer-thirdparty win32/include/reshade/
+```
+
+---
+
 ### Credits & Attribution
 
 - **Economy Enhancement Suite v2.0**: Designed and implemented by **kroryan**

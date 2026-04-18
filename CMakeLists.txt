@@ -404,6 +404,34 @@ if (WIN32)
 	list(APPEND winLibs shlwapi psapi)
 endif (WIN32)
 
+# ------------------------------------------------------------------ #
+# ReShade 5 addon (Windows only - DLL injection via opengl32.dll)     #
+# Output: pioneer-reshade.addon  (loaded automatically by ReShade)   #
+# ------------------------------------------------------------------ #
+if (WIN32)
+	add_library(pioneer-reshade SHARED
+		src/graphics/reshade/PioneerReShadeAddon.cpp
+	)
+	if (MSVC)
+		# Use headers from pioneer-thirdparty fork (kroryan/pioneer-thirdparty)
+		set(RESHADE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../pioneer-thirdparty/win32/include/reshade)
+	else()
+		set(RESHADE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/contrib/reshade/include)
+	endif()
+	target_include_directories(pioneer-reshade PRIVATE ${RESHADE_INCLUDE_DIR})
+	set_target_properties(pioneer-reshade PROPERTIES
+		OUTPUT_NAME    "pioneer-reshade"
+		SUFFIX         ".addon"
+		PREFIX         ""
+		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}
+	)
+	if(MSVC)
+		# Avoid default MSVC runtime in the addon to keep it self-contained
+		set_property(TARGET pioneer-reshade PROPERTY
+			MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	endif()
+endif()
+
 add_subdirectory(src/editor)
 
 target_link_libraries(${PROJECT_NAME} LINK_PRIVATE ${pioneerLibs} ${winLibs})

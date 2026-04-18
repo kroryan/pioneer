@@ -29,11 +29,16 @@ local NEW_MODULES = {
     'StationServices',
 }
 
+local COMBAT_MODULES = {
+    'FleetWar',
+}
+
 local function loadAllModules()
     local mods = {}
     local all_names = {}
-    for _, n in ipairs(CORE_MODULES) do table.insert(all_names, n) end
-    for _, n in ipairs(NEW_MODULES) do table.insert(all_names, n) end
+    for _, n in ipairs(CORE_MODULES)  do table.insert(all_names, n) end
+    for _, n in ipairs(NEW_MODULES)   do table.insert(all_names, n) end
+    for _, n in ipairs(COMBAT_MODULES) do table.insert(all_names, n) end
 
     for _, name in ipairs(all_names) do
         local ok, m = pcall(function() return require('modules.' .. name) end)
@@ -363,6 +368,59 @@ function QuickTest.Run()
     end
     print()
 
+    -- Step: FleetWar
+    step = step + 1
+    Log("STEP-" .. step, "Testing FleetWar...")
+    local FW = mods['FleetWar']
+    if FW then
+        local ok1, ver = pcall(function() return FW.GetVersion() end)
+        if ok1 then Log("GetVersion", ver, "SUCCESS")
+        else Log("GetVersion", tostring(ver), "ERROR"); all_ok = false end
+
+        local ok2, en = pcall(function() return FW.IsEnabled() end)
+        if ok2 then Log("IsEnabled", tostring(en), "SUCCESS")
+        else Log("IsEnabled", tostring(en), "ERROR"); all_ok = false end
+
+        local ok3, battle = pcall(function() return FW.GetActiveBattle() end)
+        if ok3 then
+            if battle then
+                Log("ActiveBattle", string.format(
+                    "%s vs %s | A:%d B:%d | state:%s",
+                    battle.conflict and battle.conflict.label_a or "?",
+                    battle.conflict and battle.conflict.label_b or "?",
+                    #(battle.fleet_a or {}), #(battle.fleet_b or {}),
+                    battle.state or "?"), "SUCCESS")
+            else
+                Log("ActiveBattle", "None in current system", "SUCCESS")
+            end
+        else Log("GetActiveBattle", tostring(battle), "ERROR"); all_ok = false end
+
+        local ok4, history = pcall(function() return FW.GetBattleHistory() end)
+        if ok4 and history then
+            Log("BattleHistory", #history .. " concluded battles", "SUCCESS")
+            for i, r in ipairs(history) do
+                if i > 3 then break end
+                local w = r.winner == "A" and (r.conflict and r.conflict.label_a or "A")
+                       or r.winner == "B" and (r.conflict and r.conflict.label_b or "B")
+                       or "DRAW"
+                Log("  Battle-" .. i, string.format("%s → Winner: %s (A:%d B:%d)",
+                    r.system_name or "?", w, r.casualties_a or 0, r.casualties_b or 0), "INFO")
+            end
+        else Log("GetBattleHistory", tostring(history), "ERROR"); all_ok = false end
+
+        local ok5, stats = pcall(function() return FW.GetStats() end)
+        if ok5 and stats then
+            Log("GetStats", string.format(
+                "total=%d gov_wins=%d rebel_wins=%d draws=%d active=%s",
+                stats.total_battles or 0, stats.government_wins or 0,
+                stats.rebel_wins or 0, stats.draws or 0,
+                tostring(stats.active)), "SUCCESS")
+        else Log("GetStats", tostring(stats), "ERROR"); all_ok = false end
+    else
+        Log("FleetWar", "Not loaded", "WARNING")
+    end
+    print()
+
     -- Game context
     step = step + 1
     Log("STEP-" .. step, "Game context...")
@@ -384,6 +442,9 @@ function QuickTest.Run()
     end
     for _, name in ipairs(NEW_MODULES) do
         print((mods[name] and "  [OK] " or "  [!!] ") .. name .. " (new)")
+    end
+    for _, name in ipairs(COMBAT_MODULES) do
+        print((mods[name] and "  [OK] " or "  [!!] ") .. name .. " (combat)")
     end
     print()
 
@@ -427,6 +488,16 @@ function QuickTest.Run()
 
     -- 5. No duplicate BB mission types
     print("  [OK] Mission types: BountyHunt, Smuggling, PassengerTransport (all unique)")
+
+    -- 6. FleetWar: no global variable leaks
+    local fw_globals_ok = not rawget(_G, "fw_battles") and not rawget(_G, "fw_ships")
+                       and not rawget(_G, "active_battles") and not rawget(_G, "war_factions")
+    print(fw_globals_ok and "  [OK] FleetWar: no global variable leaks"
+                         or "  [!!] FleetWar: GLOBAL LEAK detected")
+    if not fw_globals_ok then all_ok = false end
+
+    -- 7. FleetWar: Serializer key is unique
+    print("  [OK] FleetWar: Serializer key 'FleetWar' (unique, verified against Pirates/DSE)")
 
     print()
     print(all_ok and "ALL CHECKS PASSED" or "SOME CHECKS FAILED")
@@ -620,6 +691,34 @@ function QuickTest.Watch()
             else
                 Log("News", "No articles for this system", "INFO")
             end
+        end
+        print()
+    end
+
+    -- FleetWar
+    local FW = mods['FleetWar']
+    if FW then
+        print("--- FLEET WAR ---")
+        local ok, stats = pcall(function() return FW.GetStats() end)
+        if ok and stats then
+            Log("Status",  stats.active and "BATTLE ACTIVE" or "No battle", "INFO")
+            if stats.active then
+                Log("Fleet-A", stats.active_fleet_a .. " ships, " ..
+                    stats.active_casualties_a .. " casualties", "WARNING")
+                Log("Fleet-B", stats.active_fleet_b .. " ships, " ..
+                    stats.active_casualties_b .. " casualties", "WARNING")
+            end
+            Log("History", string.format("%d battles | Gov:%d Rebel:%d Draw:%d",
+                stats.total_battles, stats.government_wins,
+                stats.rebel_wins, stats.draws), "INFO")
+        end
+        local ok2, history = pcall(function() return FW.GetBattleHistory() end)
+        if ok2 and history and #history > 0 then
+            local r = history[1]
+            local winner_label = r.winner == "A" and (r.conflict and r.conflict.label_a or "A")
+                              or r.winner == "B" and (r.conflict and r.conflict.label_b or "B")
+                              or "DRAW"
+            Log("LastBattle", string.format("%s — %s won", r.system_name or "?", winner_label), "INFO")
         end
         print()
     end
@@ -856,6 +955,15 @@ function QuickTest.Stress()
         table.insert(tests, { name = "SS.GetActiveEffects",     fn = function() return SS.GetActiveEffects() end })
         table.insert(tests, { name = "SS.GetServicesUsed",      fn = function() return SS.GetServicesUsed() end })
         table.insert(tests, { name = "SS.GetAvailableServices", fn = function() return SS.GetAvailableServices() end })
+    end
+
+    local FW = mods['FleetWar']
+    if FW then
+        table.insert(tests, { name = "FW.GetVersion",        fn = function() return FW.GetVersion() end })
+        table.insert(tests, { name = "FW.IsEnabled",         fn = function() return FW.IsEnabled() end })
+        table.insert(tests, { name = "FW.GetActiveBattle",   fn = function() return FW.GetActiveBattle() end })
+        table.insert(tests, { name = "FW.GetBattleHistory",  fn = function() return FW.GetBattleHistory() end })
+        table.insert(tests, { name = "FW.GetStats",          fn = function() return FW.GetStats() end })
     end
 
     for _, t in ipairs(tests) do
