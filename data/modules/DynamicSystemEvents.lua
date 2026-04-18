@@ -33,7 +33,7 @@ local EventTypes = {
 		name = "Civil War",
 		duration_range = { 48, 96 },
 		severity_range = { 0.5, 1.0 },
-		base_prob = 0.06,
+		base_prob = 0.18,
 		condition = function(sys)
 			return sys.lawlessness > 0.3 and sys.population > 0.01
 		end,
@@ -51,7 +51,7 @@ local EventTypes = {
 		name = "Famine",
 		duration_range = { 36, 72 },
 		severity_range = { 0.6, 1.0 },
-		base_prob = 0.05,
+		base_prob = 0.14,
 		condition = function(sys)
 			return sys.population > 0.001
 		end,
@@ -70,7 +70,7 @@ local EventTypes = {
 		name = "Economic Boom",
 		duration_range = { 60, 120 },
 		severity_range = { 0.3, 0.8 },
-		base_prob = 0.04,
+		base_prob = 0.15,
 		condition = function(sys)
 			return sys.population > 0.1
 		end,
@@ -88,7 +88,7 @@ local EventTypes = {
 		name = "Natural Disaster",
 		duration_range = { 24, 60 },
 		severity_range = { 0.7, 1.0 },
-		base_prob = 0.04,
+		base_prob = 0.12,
 		condition = function(sys)
 			return sys.population > 0.0001
 		end,
@@ -106,7 +106,7 @@ local EventTypes = {
 		name = "Plague",
 		duration_range = { 36, 84 },
 		severity_range = { 0.6, 1.0 },
-		base_prob = 0.03,
+		base_prob = 0.10,
 		condition = function(sys)
 			return sys.population > 0.01
 		end,
@@ -123,7 +123,7 @@ local EventTypes = {
 		name = "Pirate Raids",
 		duration_range = { 24, 48 },
 		severity_range = { 0.5, 1.0 },
-		base_prob = 0.07,
+		base_prob = 0.20,
 		condition = function(sys)
 			return sys.lawlessness > 0.4
 		end,
@@ -140,7 +140,7 @@ local EventTypes = {
 		name = "Mining Boom",
 		duration_range = { 48, 96 },
 		severity_range = { 0.4, 0.9 },
-		base_prob = 0.04,
+		base_prob = 0.12,
 		condition = function(sys)
 			-- Systems that export ores (negative alteration = surplus)
 			if not sys or not sys.GetCommodityBasePriceAlterations then return false end
@@ -160,7 +160,7 @@ local EventTypes = {
 		name = "Tech Revolution",
 		duration_range = { 60, 120 },
 		severity_range = { 0.3, 0.7 },
-		base_prob = 0.03,
+		base_prob = 0.10,
 		condition = function(sys)
 			return sys.population > 0.5
 		end,
@@ -176,6 +176,9 @@ local EventTypes = {
 
 -- Maximum simultaneous events per system
 local MAX_EVENTS_PER_SYSTEM = 2
+
+-- Timer generation counter: incremented on game end to stop stale timers
+local dse_timer_gen = 0
 
 -- ============================================================================
 -- STATE
@@ -447,8 +450,13 @@ Event.Register("onGameStart", function()
 	price_cache = {}
 	bb_ads = {}
 	GenerateEvents()
-	Timer:CallEvery(10 * 60, function()
+	-- Use generation counter so loading a new save stops the previous timer
+	dse_timer_gen = dse_timer_gen + 1
+	local my_gen = dse_timer_gen
+	Timer:CallEvery(5 * 60, function()
+		if dse_timer_gen ~= my_gen then return true end   -- stop stale timer
 		if Game.system then GenerateEvents() end
+		return false
 	end)
 end)
 
@@ -465,6 +473,7 @@ Event.Register("onPlayerUndocked", function(player, station)
 end)
 
 Event.Register("onGameEnd", function()
+	dse_timer_gen = dse_timer_gen + 1   -- invalidate any running timer
 	active_events = {}
 	price_cache = {}
 	bb_ads = {}

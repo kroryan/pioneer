@@ -323,17 +323,21 @@ Event.Register("onCreateBB", function(station)
 end)
 
 Event.Register("onUpdateBB", function(station)
-	-- Refresh news periodically
+	-- Always refresh news when BB updates (events may have changed)
 	local key = systemKey(Game.system and Game.system.path)
-	if key and Engine.rand:Integer(1, 6) == 1 then
-		state.news_per_system[key] = nil  -- force regeneration
+	if key then
+		state.news_per_system[key] = nil
 		postNewsAdverts(station)
 	end
 end)
 
 Event.Register("onEnterSystem", function(ship)
 	if not ship or not ship:isa("Ship") or not ship.IsPlayer or not ship:IsPlayer() then return end
-	-- News will be generated when BB is created
+	-- Clear cached news so it regenerates with current DSE events when BB opens
+	local key = systemKey(Game.system and Game.system.path)
+	if key then
+		state.news_per_system[key] = nil
+	end
 end)
 
 Event.Register("onGameEnd", function()
