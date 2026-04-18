@@ -119,3 +119,4 @@ compile
 *.lnk
 build_reshade_log.txt
 pioneer-reshade.addon
+build_exe_log.txt

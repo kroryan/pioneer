@@ -46,6 +46,9 @@ Name: "reshade"; Description: "Install ReShade 5 post-processing support (requir
 Source: "{#InstallSource}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
 ; ReShade addon DLL - configures depth buffer for Pioneer's MSAA render targets
 Source: "D:\source\Pioneer\pioneer\pioneer-reshade.addon"; DestDir: "{app}"; Flags: ignoreversion; Tasks: reshade
+; ReShade shaders preset and shader files
+Source: "D:\source\Pioneer\pioneer\PioneerSpace.ini"; DestDir: "{app}"; Flags: ignoreversion; Tasks: reshade
+Source: "D:\source\Pioneer\pioneer\data\reshade-shaders\Shaders\*"; DestDir: "{app}\reshade-shaders\Shaders"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: reshade
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
