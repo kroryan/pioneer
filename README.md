@@ -309,7 +309,7 @@ local NF = require('modules.SystemNewsFeed')
 NF.GetCurrentNews()                    --> array of news articles
 ```
 
-### Fleet War Mod (`FleetWar`)
+### Fleet War Mod v2.0 (`FleetWar`)
 
 Adds faction fleet battles to conflict zones without touching any C++ code.
 
@@ -318,30 +318,44 @@ Adds faction fleet battles to conflict zones without touching any C++ code.
 data/modules/FleetWar.lua              ← main entry, events, serialization
 data/modules/FleetWar/WarFactions.lua  ← conflict condition logic
 data/modules/FleetWar/BattleManager.lua← spawning, tracking, AI management
-data/modules/FleetWar/WarDisplay.lua   ← Bulletin Board integration
+data/modules/FleetWar/WarDisplay.lua   ← Bulletin Board integration + war zone contracts
 ```
+
+**v2.0 Changes:**
+- Ships now spawn near populated planets (like Pirates.lua) instead of 1-3 AU from star — battles are visible and reachable
+- All spawn errors logged with `[FleetWar]` prefix instead of silently swallowed
+- Uses `Engine.rand` instead of `math.random` (proper seeding)
+- Lowered lawlessness threshold from 25% → 15% and increased spawn chance from 40% → 55%
+- BB adverts now have interactive `onChat` callback — click to view battle details and pick a side
+- New **War Zone Contract**: available at any inhabited station, lets player trigger a battle on demand
+- Comms alerts include planet name so player knows where to fly
+- **Reinforcement system**: when player participates, 1-2 reinforcement ships spawn nearby for the losing side
+- Battle body name tracked and displayed in all UI and Comms messages
 
 **How it works:**
 - On `onEnterSystem`: evaluates system lawlessness + faction → may spawn a fleet battle
-- Two sides spawn near the star (1–3 AU): Government side uses police ships, Rebel side uses pirate ships
+- Two sides spawn in orbit around a populated planet: Government side (police ships) vs Rebel side (pirate ships)
 - Ships engage autonomously via `AIKill`. Periodic timer (45 s) reassigns targets when enemies die
 - Ships below 20% hull retreat (AI cancelled, they drift)
 - Battle concludes when one side reaches 0 ships — Comms message sent to player
-- Player can participate: kill side-A ships → recorded as working for side-B → 3000 cr/kill if their side wins
+- Player can participate: kill side-A ships → recorded as working for side-B → 3,000 cr/kill if their side wins
+- **War Zone Contracts**: at any inhabited station, player can accept a contract to trigger a fleet engagement
+- Reinforcements: when player gets kills, 1-2 extra ships spawn near them for the losing side
 - Concluded battles posted to Bulletin Boards as news adverts
 - Complements `DynamicSystemEvents`: if a Civil War event is active, fleet size increases by +2
 
 **Trigger conditions:**
 | Condition | Value |
 |-----------|-------|
-| Min lawlessness | 25% |
-| Spawn chance per system entry | 40% |
+| Min lawlessness | 15% |
+| Spawn chance per system entry | 55% |
 | Requires | inhabited system + faction |
+| War Zone Contract | any inhabited station (manual trigger) |
 
 **Fleet size by lawlessness:**
 | Range | Ships per side |
 |-------|---------------|
-| 25–35% | 3 |
+| 15–35% | 3 |
 | 35–55% | 5 |
 | 55–75% | 7 |
 | 75–100% | 9 (+2 if Civil War event active) |
@@ -355,7 +369,7 @@ data/modules/FleetWar/WarDisplay.lua   ← Bulletin Board integration
 **API (for QuickTest / inter-module):**
 ```lua
 local FW = require 'modules.FleetWar'
-FW.GetVersion()       -- "1.0.0"
+FW.GetVersion()       -- "2.0.0"
 FW.GetActiveBattle()  -- battle table or nil
 FW.GetBattleHistory() -- array of concluded battle results
 FW.GetStats()         -- { active, total_battles, government_wins, rebel_wins, draws, ... }

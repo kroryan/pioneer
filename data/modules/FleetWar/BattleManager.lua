@@ -4,9 +4,8 @@
 --
 -- Battle lifecycle:
 --   SpawnBattle() → ACTIVE → (timer) UpdateBattle() → ConcludeBattle() → history
---
--- NOTE: No goto used — Lua 5.2 forbids jumping over local declarations.
 
+local Engine     = require 'Engine'
 local Game       = require 'Game'
 local ShipBuilder = require 'modules.MissionUtils.ShipBuilder'
 local MissionUtils = require 'modules.MissionUtils'
@@ -28,7 +27,47 @@ end
 
 local function pickRandom(t)
     if #t == 0 then return nil end
-    return t[math.random(1, #t)]
+    return t[Engine.rand:Integer(1, #t)]
+end
+
+-- Find a suitable planet or body to spawn the battle near.
+-- Prefers populated rocky planets (like Pirates.lua does), falls back to any planet, then star.
+local function findBattleBody()
+    if not Game.system then return nil, 0 end
+
+    local bodies = Game.system:GetBodyPaths()
+    local populated = {}
+    local rocky = {}
+
+    for _, p in ipairs(bodies) do
+        local sb = p:GetSystemBody()
+        if sb then
+            if sb.superType == 'ROCKY_PLANET' then
+                if sb.population and sb.population > 0 then
+                    table.insert(populated, sb)
+                else
+                    table.insert(rocky, sb)
+                end
+            end
+        end
+    end
+
+    -- Prefer populated planets, then any rocky planet
+    local candidates = #populated > 0 and populated or rocky
+    if #candidates > 0 then
+        local sb = candidates[Engine.rand:Integer(1, #candidates)]
+        return sb.body, sb.radius
+    end
+
+    -- Fallback: spawn around the primary star (like TradeShips does)
+    local ok_star, stars = pcall(function() return Game.system:GetStars() end)
+    if ok_star and stars and #stars > 0 then
+        local star_body = stars[1].body
+        local star_radius = stars[1].radius or 1e8
+        return star_body, star_radius
+    end
+
+    return nil, 0
 end
 
 -- Issue AIKill orders: every ship in src attacks a random live ship in dst.
@@ -44,17 +83,23 @@ local function assignTargets(src, dst)
     end
 end
 
--- Spawn `count` ships near the star (1–3 AU), label them, add to ship_set.
-local function spawnFleet(template, count, threat, label_prefix, ship_set, side)
+-- Spawn `count` ships orbiting a body, with error logging.
+local function spawnFleet(body, radius, template, count, threat, label_prefix, ship_set, side)
     local fleet = {}
+    local near = radius * 1.5
+    local far  = radius * 4.0
     for i = 1, count do
         local ok, ship = pcall(function()
-            return ShipBuilder.MakeShipAroundStar(template, threat, 1.0, 3.0)
+            return ShipBuilder.MakeShipOrbit(body, template, threat, near, far)
         end)
         if ok and ship and ship:exists() then
             ship:SetLabel(label_prefix .. " " .. i)
             table.insert(fleet, ship)
             ship_set[ship] = side
+        else
+            local err_msg = not ok and tostring(ship) or "ship nil or not exists"
+            print(string.format("[FleetWar] spawnFleet ERROR: side=%s i=%d threat=%d err=%s",
+                side, i, threat, err_msg))
         end
     end
     return fleet
@@ -79,20 +124,39 @@ function BattleManager.SpawnBattle(conflict, fleet_size, threat)
     local key = pathKey(Game.system.path)
     if BattleManager.active[key] then return nil end   -- already one here
 
+    -- Find a body to spawn near (populated planet > rocky planet > star)
+    local body, radius = findBattleBody()
+    if not body then
+        print("[FleetWar] SpawnBattle: no suitable body found in system")
+        return nil
+    end
+
+    local body_name = "unknown"
+    pcall(function() body_name = body:GetLabel() or body:GetSystemBody().name or "unknown" end)
+    print(string.format("[FleetWar] SpawnBattle: spawning %d vs %d near %s (radius=%d, threat=%d)",
+        fleet_size, fleet_size, body_name, radius, threat))
+
     local ship_set = {}   -- ship → "A"|"B" for O(1) membership test
 
     local fleet_a = spawnFleet(
+        body, radius,
         MissionUtils.ShipTemplates.GenericPolice,
         fleet_size, threat,
         conflict.label_a, ship_set, "A")
 
     local fleet_b = spawnFleet(
+        body, radius,
         MissionUtils.ShipTemplates.StrongPirate,
         fleet_size, threat + 10,
         conflict.label_b, ship_set, "B")
 
+    print(string.format("[FleetWar] SpawnBattle result: fleet_a=%d, fleet_b=%d", #fleet_a, #fleet_b))
+
     -- Abort if no ships were created (ShipBuilder found no suitable hulls)
-    if #fleet_a == 0 and #fleet_b == 0 then return nil end
+    if #fleet_a == 0 and #fleet_b == 0 then
+        print("[FleetWar] SpawnBattle: ABORTED — no ships spawned (hull selection failed)")
+        return nil
+    end
 
     local battle = {
         key          = key,
@@ -111,6 +175,7 @@ function BattleManager.SpawnBattle(conflict, fleet_size, threat)
         start_time   = Game.time,
         state        = "ACTIVE",
         winner       = nil,
+        battle_body_name = body_name,
     }
 
     assignTargets(fleet_a, fleet_b)
@@ -198,7 +263,7 @@ end
 function BattleManager.HandleShipHit(ship, attacker)
     for key, battle in pairs(BattleManager.active) do
         if battle.state == "ACTIVE" and battle.ship_set[ship] and ship:exists() then
-            local ok, hp = pcall(function() return ship:GetHullPercent() end)
+            local ok, hp = pcall(function() return ship.hullPercent or ship:GetHullPercent() end)
             if ok and hp and hp < 20 then
                 local retreating_side = battle.ship_set[ship]
                 battle.ship_set[ship] = nil   -- stop tracking; ship retreats
@@ -273,13 +338,14 @@ function BattleManager.ConcludeBattle(key, winner)
         -- Player combat payment
         if battle.player_side and battle.player_side == winner and battle.player_kills > 0 then
             local reward = battle.player_kills * 3000
-            local paid = pcall(function() Game.player:AddMoney(reward) end)
+            local paid, pay_err = pcall(function() Game.player:AddMoney(reward) end)
             if paid then
                 Comms.ImportantMessage(
                     string.format("Combat payment: %d cr (%d kills).",
                         reward, battle.player_kills),
                     "Battle Network")
             else
+                print("[FleetWar] AddMoney error: " .. tostring(pay_err))
                 Comms.ImportantMessage(
                     string.format("Combat contract fulfilled (%d kills). Collect %d cr at any station.",
                         battle.player_kills, reward),

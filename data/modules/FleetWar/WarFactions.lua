@@ -2,12 +2,14 @@
 -- Conflict condition logic and faction label generation.
 -- Pure data + functions, no side effects, no event registration.
 
+local Engine = require 'Engine'
+
 local WarFactions = {}
 
--- Minimum lawlessness to trigger a battle
-local MIN_LAWLESSNESS = 0.25
+-- Minimum lawlessness to trigger a battle (lowered from 0.25 for more frequent battles)
+local MIN_LAWLESSNESS = 0.15
 -- Probability that a qualifying system actually has a battle (checked in FleetWar.lua)
-WarFactions.SPAWN_CHANCE = 0.40
+WarFactions.SPAWN_CHANCE = 0.55
 
 -- Fleet size thresholds by lawlessness
 local SIZE_THRESHOLDS = {
@@ -70,7 +72,7 @@ end
 -- Returns a threat factor for ships in this system.
 function WarFactions.GetThreat(system)
     local l = system.lawlessness or 0.3
-    return math.floor(30 + math.random(0, math.floor(l * 50)))
+    return math.floor(30 + Engine.rand:Number(l * 50))
 end
 
 return WarFactions

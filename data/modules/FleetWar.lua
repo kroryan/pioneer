@@ -21,6 +21,7 @@
 
 local Event      = require 'Event'
 local Timer      = require 'Timer'
+local Engine     = require 'Engine'
 local Serializer = require 'Serializer'
 local Game       = require 'Game'
 
@@ -29,7 +30,7 @@ local BattleManager = require 'modules.FleetWar.BattleManager'
 local WarDisplay    = require 'modules.FleetWar.WarDisplay'
 
 local FleetWar = {}
-FleetWar.VERSION = "1.0.0"
+FleetWar.VERSION = "2.0.0"
 
 -- ── internal state ────────────────────────────────────────────────────────────
 
@@ -66,7 +67,7 @@ local function trySpawnBattle()
     if not conflict then return end
 
     -- Random chance filter
-    if math.random() > WarFactions.SPAWN_CHANCE then return end
+    if Engine.rand:Number(1) > WarFactions.SPAWN_CHANCE then return end
 
     local civil_war  = hasCivilWar()
     local fleet_size = WarFactions.GetFleetSize(Game.system, civil_war)
@@ -91,18 +92,83 @@ local function trySpawnBattle()
         return false   -- keep firing
     end)
 
-    -- Announce battle to player
+    -- Announce battle to player with location info
     local ok, Comms = pcall(require, 'Comms')
     if ok and Comms then
         local intensity = civil_war and "MAJOR" or "MINOR"
+        local location = battle.battle_body_name or "this system"
         Comms.ImportantMessage(
             string.format(
-                "Navigation alert: %s fleet engagement detected.\n"..
+                "ALERT: %s fleet engagement detected near %s!\n"..
                 "%s vs. %s — %d ships per side.\n"..
-                "Engage enemy ships to earn combat payment.",
-                intensity, conflict.label_a, conflict.label_b, fleet_size),
-            "Navigation System")
+                "Navigate to %s to engage. Combat payment: 3,000 cr/kill.",
+                intensity, location,
+                conflict.label_a, conflict.label_b, fleet_size,
+                location),
+            "Battle Network")
     end
+
+    -- Set up reinforcement timer: if player participates, spawn 1-2 extra ships nearby
+    local reinforce_key = systemKey(Game.system)
+    local reinforced = false
+    Timer:CallEvery(60, function()
+        if not Game.system then return true end
+        if systemKey(Game.system) ~= reinforce_key then return true end
+        if reinforced then return true end
+
+        local b = BattleManager.active[reinforce_key]
+        if not b or b.state ~= "ACTIVE" then return true end
+
+        -- Only reinforce if player has started fighting
+        if b.player_kills and b.player_kills > 0 then
+            reinforced = true
+            local MissionUtils = require 'modules.MissionUtils'
+            local ShipBuilder = require 'modules.MissionUtils.ShipBuilder'
+
+            -- Spawn 1-2 reinforcements for the losing side near player
+            local losing_side, template, label
+            if #b.fleet_a < #b.fleet_b then
+                losing_side = "A"
+                template = MissionUtils.ShipTemplates.GenericPolice
+                label = b.conflict.label_a .. " Reinforcement"
+            else
+                losing_side = "B"
+                template = MissionUtils.ShipTemplates.StrongPirate
+                label = b.conflict.label_b .. " Reinforcement"
+            end
+
+            local reinforce_count = 1 + Engine.rand:Integer(0, 1)
+            for ri = 1, reinforce_count do
+                local rok, rship = pcall(function()
+                    return ShipBuilder.MakeShipNear(Game.player, template, threat, 50, 100)
+                end)
+                if rok and rship and rship:exists() then
+                    rship:SetLabel(label .. " " .. ri)
+                    table.insert(losing_side == "A" and b.fleet_a or b.fleet_b, rship)
+                    b.ship_set[rship] = losing_side
+                    -- Target an enemy
+                    local enemies = losing_side == "A" and b.fleet_b or b.fleet_a
+                    if #enemies > 0 then
+                        local target = enemies[Engine.rand:Integer(1, #enemies)]
+                        if target and target:exists() then
+                            rship:AIKill(target)
+                        end
+                    end
+                else
+                    print("[FleetWar] Reinforcement spawn failed: " .. tostring(rship))
+                end
+            end
+
+            if ok and Comms then
+                Comms.ImportantMessage(
+                    string.format("Reinforcements arriving! %d ships joining %s.",
+                        reinforce_count, losing_side == "A" and b.conflict.label_a or b.conflict.label_b),
+                    "Battle Network")
+            end
+            return true  -- stop reinforcement timer
+        end
+        return false  -- keep checking
+    end)
 end
 
 -- ── event handlers ─────────────────────────────────────────────────────────────
@@ -129,9 +195,26 @@ Event.Register("onShipHit", function(ship, attacker)
     BattleManager.HandleShipHit(ship, attacker)
 end)
 
--- BB adverts: battle status + history news
+-- BB adverts: battle status + history news + war zone contracts
 Event.Register("onCreateBB", function(station)
     WarDisplay.AddAdverts(station)
+
+    -- Check if WarDisplay triggered a battle via contract
+    if WarDisplay._last_triggered_battle then
+        local spawn_key = systemKey(Game.system)
+        fw_timer_system_key = spawn_key
+
+        -- Start the update timer for the contract-triggered battle
+        Timer:CallEvery(45, function()
+            if not Game.system then return true end
+            if systemKey(Game.system) ~= spawn_key then return true end
+            if not BattleManager.active[spawn_key] then return true end
+            BattleManager.UpdateBattle(spawn_key)
+            return false
+        end)
+
+        WarDisplay._last_triggered_battle = nil
+    end
 end)
 
 Event.Register("onGameStart", function()
