@@ -84,28 +84,28 @@
     "message": "ένα DS μεταλλευτικό"
   },
   "KANARA": {
-    "description": "ship name - base form",
+    "description": "ship name - base form, Kanara civilian",
     "message": "Kanara"
   },
-  "KANARA_CIV": {
-    "description": "ship name - base form",
-    "message": "Kanara πολιτικό"
-  },
-  "KANARA_CIV_DEF": {
-    "description": "ship - definite form",
-    "message": "το πολιτικό Kanara"
-  },
-  "KANARA_CIV_INDEF": {
-    "description": "ship name - indefinite form",
-    "message": "ένα πολιτικό Kanara"
-  },
   "KANARA_DEF": {
-    "description": "ship - definite form",
+    "description": "ship - definite form, Kanara civilian",
     "message": "το Kanara"
   },
   "KANARA_INDEF": {
-    "description": "ship name - indefinite form",
+    "description": "ship name - indefinite form, Kanara civilian",
     "message": "ένα Kanara"
+  },
+  "KANARA_POLICE": {
+    "description": "ship name - base form",
+    "message": "Αστυνομικό Kanara"
+  },
+  "KANARA_POLICE_DEF": {
+    "description": "ship - definite form",
+    "message": "το αστυνομικό Kanara"
+  },
+  "KANARA_POLICE_INDEF": {
+    "description": "ship name - indefinite form",
+    "message": "ένα αστυνομικό Kanara"
   },
   "LODOS": {
     "description": "ship name - base form",

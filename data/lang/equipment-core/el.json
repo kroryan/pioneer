@@ -39,6 +39,18 @@
     "description": "",
     "message": "Ένας υπολογιστής πτήσης στο σκάφος."
   },
+  "AUXILIARY_CARGO_RACK": {
+    "description": "Equipment name for a cargo-carrying rack installed as a cabin module",
+    "message": "Βοηθητικός χώρος μεταφοράς φορτίου."
+  },
+  "AUXILIARY_CARGO_RACK_DESCRIPTION": {
+    "description": "Equipment description for a cargo-carrying rack installed as a cabin module",
+    "message": "Επιπλέον χώρος φορτίου που έχει εγκατασταθεί σε χώρο του σκάφους που προοριζόταν για καμπίνα επιβάτη."
+  },
+  "AUXILIARY_CARGO_RACK_FLAVOURTEXT": {
+    "description": "Equipment description for a cargo-carrying rack installed as a cabin module",
+    "message": "Εκμεταλλευτείτε τις μη-αξιοποιούμενες καμπίνες του σκάφους σας. Αυτό το κιτ μετατροπής ταιριάζει στα περισσότερα σκάφη. Κατασκευάζεται από την Seversk a.k."
+  },
   "BEAMLASER_1MW": {
     "description": "",
     "message": "1MW λέιζερ δέσμης"
@@ -63,6 +75,10 @@
     "description": "Category header for pressurized cabin slots",
     "message": "Καμπίνες"
   },
+  "CARGO_CAPACITY": {
+    "description": "Statistic name for an equipment that provides cargo capacity",
+    "message": "Επιπλέον χώρος μεταφοράς φορτίου."
+  },
   "CARGO_LIFE_SUPPORT": {
     "description": "",
     "message": "Χώρος φορτίου για υποστήριξη ζωής"
@@ -82,6 +98,18 @@
   "COMPUTER_MODULES": {
     "description": "Category name of computer-related equipment",
     "message": "Ηλεκτρονικά εξαρτήματα."
+  },
+  "CONCEALED_CARGO_RACK": {
+    "description": "Equipment name for a cargo-carrying smuggler's hold installed as a cabin module",
+    "message": "Μυστικός χώρος αποθήκευσης φορτίου."
+  },
+  "CONCEALED_CARGO_RACK_DESCRIPTION": {
+    "description": "Equipment description for a cargo-carrying smuggler's hold installed as a cabin module",
+    "message": "Προστατευμένος χώρος μεταφοράς φορτίου, ο οποίος εξωτερικά φαίνεται σαν καμπίνα επιβάτη. Παρεμποδίζει τον εντοπισμό του από τα όργανα της τάξης."
+  },
+  "CONCEALED_CARGO_RACK_FLAVOURTEXT": {
+    "description": "Equipment description for a cargo-carrying smuggler's hold installed as a cabin module",
+    "message": "Αυτός ο χώρος μεταφοράς φορτίου έχει υποστεί απόκρυψη (κάπως πρόχειρα) από την εταιρεία Seversk a.k. με ηλεκτροκόλληση μεταλλικού φαντώματος που ομοιάζει με τοίχο διαστημοπλοίου. Διακρίνεται ένα αυτοκόλλητο όπου είναι γραμμένο με το χέρι \"Εγγυημένα περνάει τον συνοπτικό έλεγχο, αλλιώς επιστρέφουμε τα χρήματά σας\"."
   },
   "DAMAGE_PER_SHOT": {
     "description": "Tooltip explaining weapon damage per shot",
@@ -210,6 +238,10 @@
   "FUEL_SCOOP_DESCRIPTION": {
     "description": "",
     "message": "Επιτρέπει τη λήψη καυσίμων υδρογόνου από γιγαντιαίους πλανήτες αερίου."
+  },
+  "HABITAT": {
+    "description": "Category header for pressurized habitat slots",
+    "message": "Υποδοχή καμπίνας"
   },
   "HARDPOINT_FUEL_SCOOP": {
     "description": "Name for the 'Fuel Scoop' equipment hardpoint",
@@ -397,7 +429,7 @@
   },
   "MISSILE_NAVAL_FLAVOURTEXT": {
     "description": "Equipment description",
-    "message": "Οι πύραυλοι αυτοί κατασκευάζονται σε εξειδικευμένα και μυστικά στρατιωτικά εργοστάσια, σε εγκαταστάσεις που περιορισμένης πρόσβασης. Συνεπώς, συνήθως δεν είναι διαθέσιμοι παρά μόνο για τον στρατό. Είναι ανθεκτικοί σε όλα τα γνωστά αντιπυραυλικά μέσα, έχουν μεγάλη ταχύτητα σε σχέση με το μέγεθός τους και συνήθως φέρουν πολύ ισχυρές πολεμικές κεφαλές. Τα σκάφη που φέρουν τέτοιους πυραύλους χρησιμοποιούν ειδικό εξοπλισμό, ο οποίος εξασφαλίζει σωστή στόχευση και προγραμματισμό των πυραύλων, πριν την εκτόξευση."
+    "message": "Οι πύραυλοι αυτοί κατασκευάζονται σε εξειδικευμένα και απόρρητα στρατιωτικά εργοστάσια, σε εγκαταστάσεις περιορισμένης πρόσβασης. Συνεπώς, συνήθως δεν είναι διαθέσιμοι παρά μόνο για στρατιωτική χρήση. Είναι ανθεκτικοί στα περισσότερα συνηθισμένα αντιπυραυτλικά μέσα, έχουν μεγάλη ταχύτητα σε σχέση με το μέγεθός τους και συνήθως φέρουν πολύ ισχυρές πολεμικές κεφαλές. Τα σκάφη που φέρουν τέτοιους πυραύλους χρησιμοποιούν ειδικό εξοπλισμό, ο οποίος εξασφαλίζει σωστή στόχευση και προγραμματισμό των πυραύλων, πριν την εκτόξευση. "
   },
   "MISSILE_RACK_221": {
     "description": "Name for a multiple-missile external missile rack. 'Hydra' is a model name.",
@@ -702,6 +734,10 @@
   "SENSOR_RESOLUTION": {
     "description": "Resolution of e.g. optical sensor",
     "message": "Διακριτική ικανότητα αισθητήρα"
+  },
+  "SHIELDED_CARGO_CAPACITY": {
+    "description": "Statistic name for an equipment that provides cargo scan resistance",
+    "message": "Χωρητικότητα κρυφού φορτίου."
   },
   "SHIELDS": {
     "description": "Category name of shield-related equipment",

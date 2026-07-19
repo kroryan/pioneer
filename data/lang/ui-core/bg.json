@@ -67,6 +67,10 @@
     "description": "",
     "message": "Поправете корпуса"
   },
+  "AUDIO_BACKEND": {
+    "description": "Audio backend label in settings menu",
+    "message": "Аудио бекенд"
+  },
   "AUTOMATED_MESSAGE": {
     "description": "For comm messages from bots",
     "message": "АВТОМАТИЧНО СЪОБЩЕНИЕ"
@@ -90,6 +94,14 @@
   "BACKWARD_ACCEL": {
     "description": "",
     "message": "Ускорение назад"
+  },
+  "BINAURAL_RENDERING": {
+    "description": "Label of the binaural rendering checkbox in the audio settings menu",
+    "message": "Бинаурално генериране"
+  },
+  "BINAURAL_RENDERING_DESC": {
+    "description": "Tooltip of the binaural rendering checkbox in the audio settings menu",
+    "message": "Прилага HRTF филтри към аудио изхода. Препоръчва се използването на слушалки."
   },
   "BODY_IN_ROUTE": {
     "description": "Label indicating a star is part of a planned hyperjump route",
@@ -593,7 +605,7 @@
   },
   "ENABLE_COCKPIT": {
     "description": "Game settings option: to use a cockpit 3D model",
-    "message": "Тризимерна кабина (ЕКСПЕРИМЕНТАЛНО)"
+    "message": "Триизмерна кабина (ЕКСПЕРИМЕНТАЛНО)"
   },
   "ENABLE_COCKPIT_DESC": {
     "description": "tooltip description in settings menu",
@@ -1169,7 +1181,7 @@
   },
   "HUD_FOLLOW_ORIENTATION_NOT_AVAILABLE_TOO_FAR": {
     "description": "Tooltip for follow mode 'orientation' button, when it's not available for the current object, because it's too far.",
-    "message": "{targetname}: Следването на ориентацията не е възможно – целта е твърде далече."
+    "message": "{targetname}: Следването на ориентацията не е възможно – целта е твърде далеч."
   },
   "HUD_FOLLOW_POSITION": {
     "description": "Tooltip for follow mode 'position' button",
@@ -1181,7 +1193,7 @@
   },
   "HUD_FOLLOW_POSITION_NOT_AVAILABLE_TOO_FAR": {
     "description": "Tooltip for follow mode 'position' button, when it's not available for the current object, because it's too far.",
-    "message": "{targetname}: Следването на позицията не е възможно – целта е твърде далече."
+    "message": "{targetname}: Следването на позицията не е възможно – целта е твърде далеч."
   },
   "HUD_FOLLOW_TARGET": {
     "description": "Tooltip for followed target's name in reticule",
@@ -1190,6 +1202,10 @@
   "HUD_FORWARD_GUN_TEMPERATURE": {
     "description": "Tooltip: Forward Gun Temperature.",
     "message": "Температура на предното оръжие"
+  },
+  "HUD_GRAVITY_INDICATOR": {
+    "description": "Tooltip: describe what the gravity indicator shows",
+    "message": "Местно гравитационно ускорение (мащаб: максимално ускорение на кораба)"
   },
   "HUD_HULL_STRENGTH": {
     "description": "Tooltip: Hull Strength.",
@@ -1297,19 +1313,19 @@
   },
   "HUD_SPEED_OF_APPROACH_TO_FRAME": {
     "description": "Tooltip: The speed of approach towards the frame of reference.",
-    "message": "Скоростта на приближаване към отправната система"
+    "message": "Скорост на приближаване към отправната система"
   },
   "HUD_SPEED_OF_APPROACH_TO_TARGET": {
     "description": "Tooltip: The speed of approach relative to target.",
-    "message": "Скорост на приближаване, спрямо целта"
+    "message": "Скорост на приближаване спрямо целта"
   },
   "HUD_SPEED_RELATIVE_TO_TARGET": {
     "description": "Tooltip: The speed relative to the target.",
-    "message": "Скорост, спрямо целта"
+    "message": "Скорост спрямо целта"
   },
   "HUD_THRUST_INDICATOR": {
-    "description": "Tooltip: describe what the thrust/velocity indicator shows",
-    "message": "Текуща скорост за всяка посока (като тънки линии) и ускорението (като дебел фон)"
+    "description": "Tooltip: describe what the thrust indicator shows",
+    "message": "Текущи нива на тягата за маневриране (външен пръстен) и основни или ретро двигатели (централен кръг)"
   },
   "HUD_WARNING_DESCENT_RATE": {
     "description": "Shown on HUD as a warning flasher",
@@ -1957,7 +1973,7 @@
   },
   "PAINTSHOP_WELCOME_2": {
     "description": "Welcome message to the paintshop.",
-    "message": "При нас, Вашият кораб няма да стане по-бърз, но ще стане по-красив!"
+    "message": "При нас Вашият кораб няма да стане по-бърз, но ще стане по-красив!"
   },
   "PAINTSHOP_WELCOME_3": {
     "description": "Welcome message to the paintshop.",
@@ -2137,7 +2153,7 @@
   },
   "REALISTIC_SCATTERING_DESC": {
     "description": "",
-    "message": "Изберете разсейването при визуализиране на атмосферата. (Рейли/Мие понижава производителността)"
+    "message": "Изберете разсейването при генериране на атмосферата. (Рейли/Мие понижава производителността)"
   },
   "REAR_WEAPON": {
     "description": "",
@@ -2181,7 +2197,7 @@
   },
   "REMOVE_WHEN_COMPLETED": {
     "description": "For UI hyperjump planner, referring to jump target system",
-    "message": "Премахване на хиперскока, след завършването му"
+    "message": "Премахване на хиперскока след завършването му"
   },
   "REPAIR_X_HULL_DAMAGE_FOR_X": {
     "description": "",
@@ -2305,7 +2321,7 @@
   },
   "SELECTED_SAVE_IS_NOT_A_VALID_SAVE": {
     "description": "",
-    "message": "Избраният запис е невалиден"
+    "message": "Избраният запис не е валиден"
   },
   "SELECT_A_FILE_TO_SAVE_TO_OR_ENTER_A_NEW_FILENAME": {
     "description": "",
@@ -2353,7 +2369,7 @@
   },
   "SET_AS_TARGET": {
     "description": "",
-    "message": "Задаване на дестинацията като навигационна цел."
+    "message": "Задаване на дестинацията като навигационна цел"
   },
   "SET_JUMP_TARGET": {
     "description": "Button tooltip which sets the jump route to the selected body",
@@ -2473,11 +2489,11 @@
   },
   "START_AT_NEW_HOPE": {
     "description": "New Hope is an in game location",
-    "message": "Нова надежда"
+    "message": "Нова Надежда"
   },
   "START_AT_NEW_HOPE_DESC": {
     "description": "",
-    "message": "Това е умерен старт от Ицалиян – Нова надежда в системата Епсилон Еридани."
+    "message": "Това е умерен старт от Ицалиян – Нова Надежда в системата Епсилон от Еридан."
   },
   "START_GAME": {
     "description": "Button",
@@ -2861,7 +2877,7 @@
   },
   "YOU_HAVE_X_UNITS_IN_YOUR_CARGOHOLD": {
     "description": "",
-    "message": "Имате {units} единици във Вашето товарно отделение"
+    "message": "Имате {units} единици в товарното отделение"
   },
   "YOU_MUST_FIRST_SELECT_A_COMBAT_TARGET_COMMANDER": {
     "description": "",

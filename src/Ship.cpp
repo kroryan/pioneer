@@ -617,7 +617,7 @@ void Ship::UpdateEquipStats()
 	m_stats.static_mass = m_stats.loaded_mass + m_type->hullMass;
 
 	m_stats.used_cargo = p.Get("usedCargo").get_integer();
-	m_stats.free_cargo = p.Get("totalCargo").get_integer() - m_stats.used_cargo;
+	m_stats.free_cargo = p.Get("cargo_cap").get_integer() - m_stats.used_cargo;
 
 	p.Set("loadedMass", m_stats.loaded_mass);
 	p.Set("staticMass", m_stats.static_mass);
@@ -929,7 +929,6 @@ void Ship::SetLandedOn(Planet *p, float latitude, float longitude)
 void Ship::SetFrame(FrameId fId)
 {
 	DynamicBody::SetFrame(fId);
-	m_sensors->ResetTrails();
 }
 
 void Ship::TimeStepUpdate(const float timeStep)
@@ -975,7 +974,7 @@ void Ship::DoThrusterSounds() const
 
 	// XXX sound logic could be part of a bigger class (ship internal sounds)
 	/* Ship engine noise. less loud inside */
-	float v_env = (Pi::game->GetWorldView()->shipView->IsExteriorView() ? 1.0f : 0.5f) * Sound::GetSfxVolume();
+	float v_env = (Pi::game->GetWorldView()->shipView->IsExteriorView() ? 1.0f : 0.5f);
 	static Sound::Event sndev;
 	float volBoth = 0.0f;
 	volBoth += 0.5f * fabs(m_propulsion->GetLinThrusterState().y);
@@ -1385,6 +1384,17 @@ void Ship::OnLanded(Body *b)
 void Ship::OnTakeoff(Body *b)
 {
 	LuaEvent::Queue("onShipTakeOff", this, b);
+}
+
+bool Ship::IsOnSurface() const
+{
+	if (IsLanded())
+		return true;
+	if (IsDocked()) {
+		const SpaceStation *station = GetDockedWith();
+		return station && station->IsGroundStation();
+	}
+	return false;
 }
 
 bool Ship::Undock()

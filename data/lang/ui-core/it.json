@@ -67,6 +67,10 @@
     "description": "",
     "message": "Tenta di riparare lo scavo"
   },
+  "AUDIO_BACKEND": {
+    "description": "Audio backend label in settings menu",
+    "message": "Backend Audio"
+  },
   "AUTOMATED_MESSAGE": {
     "description": "For comm messages from bots",
     "message": "MESSAGGIO AUTOMATICO"
@@ -90,6 +94,14 @@
   "BACKWARD_ACCEL": {
     "description": "",
     "message": "Accelerazione indietro"
+  },
+  "BINAURAL_RENDERING": {
+    "description": "Label of the binaural rendering checkbox in the audio settings menu",
+    "message": "Resa Binaurale"
+  },
+  "BINAURAL_RENDERING_DESC": {
+    "description": "Tooltip of the binaural rendering checkbox in the audio settings menu",
+    "message": "Quanto abilitata, vengono applicati i filtri HRTF. Consigliato l'uso di cuffie."
   },
   "BODY_IN_ROUTE": {
     "description": "Label indicating a star is part of a planned hyperjump route",
@@ -1191,6 +1203,10 @@
     "description": "Tooltip: Forward Gun Temperature.",
     "message": "Temperatura Arma Anteriore"
   },
+  "HUD_GRAVITY_INDICATOR": {
+    "description": "Tooltip: describe what the gravity indicator shows",
+    "message": "Accelerazione gravitazionale locale (scala: massima accelerazione della nave)"
+  },
   "HUD_HULL_STRENGTH": {
     "description": "Tooltip: Hull Strength.",
     "message": "Resistenza Scafo"
@@ -1308,8 +1324,8 @@
     "message": "La velocità relativa all'obiettivo"
   },
   "HUD_THRUST_INDICATOR": {
-    "description": "Tooltip: describe what the thrust/velocity indicator shows",
-    "message": "Mostra per ogni direzione l'attuale velocità (linee sottili) e spinta (sfondo grosso)"
+    "description": "Tooltip: describe what the thrust indicator shows",
+    "message": "Mostra i livelli di spinta per le manovre (cerchio esterno) e i motori primario e retro (cerchio interno)"
   },
   "HUD_WARNING_DESCENT_RATE": {
     "description": "Shown on HUD as a warning flasher",
@@ -2353,7 +2369,7 @@
   },
   "SET_AS_TARGET": {
     "description": "",
-    "message": "Imposta la destinazione come obiettivo di navigazione."
+    "message": "Imposta destinazione sul navigatore"
   },
   "SET_JUMP_TARGET": {
     "description": "Button tooltip which sets the jump route to the selected body",

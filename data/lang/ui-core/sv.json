@@ -67,6 +67,10 @@
     "description": "",
     "message": "Försök att reparera skrov"
   },
+  "AUDIO_BACKEND": {
+    "description": "Audio backend label in settings menu",
+    "message": "Ljudbackend"
+  },
   "AUTOMATED_MESSAGE": {
     "description": "For comm messages from bots",
     "message": "AUTOMATISKT MEDDELANDE"
@@ -90,6 +94,14 @@
   "BACKWARD_ACCEL": {
     "description": "",
     "message": "Accelerera bakåt"
+  },
+  "BINAURAL_RENDERING": {
+    "description": "Label of the binaural rendering checkbox in the audio settings menu",
+    "message": "Binauralt ljud"
+  },
+  "BINAURAL_RENDERING_DESC": {
+    "description": "Tooltip of the binaural rendering checkbox in the audio settings menu",
+    "message": "När det är aktiverat tillämpas HRTF-filter på ljudutgången. Fungerar bäst med hörlurar."
   },
   "BODY_IN_ROUTE": {
     "description": "Label indicating a star is part of a planned hyperjump route",
@@ -625,7 +637,7 @@
   },
   "EQUIPMENT_ALREADY_INSTALLED_HERE": {
     "description": "Message indicating this equipment item is already installed.",
-    "message": "This equipment item is already installed here."
+    "message": "Denna utrustningsartikel är redan installerad här."
   },
   "EQUIPMENT_CAPACITY": {
     "description": "The equipment capacity of a ship",
@@ -1069,7 +1081,7 @@
   },
   "HUD_BUTTON_SWITCH_TO_CURRENT_SYSTEM": {
     "description": "Tooltip: Switch to current system",
-    "message": "Byt till nuvarande system"
+    "message": "Visa nuvarande system"
   },
   "HUD_BUTTON_SWITCH_TO_GALAXY_MAP": {
     "description": "Tooltip: Switch to galaxy map",
@@ -1077,23 +1089,23 @@
   },
   "HUD_BUTTON_SWITCH_TO_SECTOR_MAP": {
     "description": "Tooltip: Switch to sector map",
-    "message": "Byt till sektorkarta"
+    "message": "Sektorkarta"
   },
   "HUD_BUTTON_SWITCH_TO_SELECTED_SYSTEM": {
     "description": "Tooltip: Switch to selected system",
-    "message": "Byt till valt system "
+    "message": "Visa valt system "
   },
   "HUD_BUTTON_SWITCH_TO_SYSTEM_MAP": {
     "description": "Tooltip: Switch to system map",
-    "message": "Byt till systemkarta"
+    "message": "Systemkarta"
   },
   "HUD_BUTTON_SWITCH_TO_SYSTEM_OVERVIEW": {
     "description": "Tooltip: Switch to system overview",
-    "message": "Byt till systemöversikt"
+    "message": "Systemöversikt"
   },
   "HUD_BUTTON_SWITCH_TO_WORLD_VIEW": {
     "description": "Tooltip: Switch to world view",
-    "message": "Byt till världsvy"
+    "message": "Världsvy"
   },
   "HUD_BUTTON_UNDOCK": {
     "description": "Tooltip: Undock",
@@ -1190,6 +1202,10 @@
   "HUD_FORWARD_GUN_TEMPERATURE": {
     "description": "Tooltip: Forward Gun Temperature.",
     "message": "Främre kanon-temperatur"
+  },
+  "HUD_GRAVITY_INDICATOR": {
+    "description": "Tooltip: describe what the gravity indicator shows",
+    "message": "Local gravity acceleration (scale: ship maximum acceleration)"
   },
   "HUD_HULL_STRENGTH": {
     "description": "Tooltip: Hull Strength.",
@@ -1308,8 +1324,8 @@
     "message": "Hastighet relativt målet"
   },
   "HUD_THRUST_INDICATOR": {
-    "description": "Tooltip: describe what the thrust/velocity indicator shows",
-    "message": "Visa nuvarande hastighet för varje riktning (tunna linjer) och motorer (tjock bakgrund)"
+    "description": "Tooltip: describe what the thrust indicator shows",
+    "message": "Show current thrust levels for maneuvering (outer ring) and primary or retro engines (center circle)"
   },
   "HUD_WARNING_DESCENT_RATE": {
     "description": "Shown on HUD as a warning flasher",
@@ -2353,7 +2369,7 @@
   },
   "SET_AS_TARGET": {
     "description": "",
-    "message": "Använd destination som navigationsmål."
+    "message": "Använd destination som navigationsmål"
   },
   "SET_JUMP_TARGET": {
     "description": "Button tooltip which sets the jump route to the selected body",
@@ -2545,7 +2561,7 @@
   },
   "SYSTEM_FACTION": {
     "description": "Tooltip indicating the faction controlling this system",
-    "message": "Controlling faction jurisdiction"
+    "message": "Kontrollerande fraktions jurisdiktion"
   },
   "SYSTEM_INFORMATION": {
     "description": "Tooltip / label indicating information about a selected star system",
@@ -2553,11 +2569,11 @@
   },
   "SYSTEM_NUM_STARS": {
     "description": "Tooltip indicating the system stellar arrangement",
-    "message": "Number of stars in system"
+    "message": "Antal stjärnor i systemet"
   },
   "SYSTEM_SECURITY_1": {
     "description": "Security category for systems with low lawlessness. A nod to Elite's pilot ratings.",
-    "message": "Safe"
+    "message": "Ofarlig"
   },
   "SYSTEM_SECURITY_2": {
     "description": "Security category for systems with low lawlessness. A nod to Elite's pilot ratings.",
@@ -2569,7 +2585,7 @@
   },
   "SYSTEM_SECURITY_4": {
     "description": "Security category for systems with low lawlessness. A nod to Elite's pilot ratings.",
-    "message": "Very Dangerous"
+    "message": "Väldigt farlig"
   },
   "SYSTEM_SECURITY_5": {
     "description": "Security category for systems with low lawlessness. A nod to Elite's pilot ratings.",
@@ -2577,7 +2593,7 @@
   },
   "SYSTEM_SECURITY_TOOLTIP": {
     "description": "Tooltip introducing the system security rating",
-    "message": "System safety rating"
+    "message": "Säkerhetsrankning"
   },
   "TECH_CERTIFIED": {
     "description": "Lobby screen shows the tech level (an integer number) of the station",
@@ -2701,7 +2717,7 @@
   },
   "TRANSLATE_VIEW": {
     "description": "Indicates that the button must be kept pressed down, to translate the camera view with mouse",
-    "message": "Hold down to Translate view"
+    "message": "Håll nere för att förflytta vyn"
   },
   "TRUSTWORTHY": {
     "description": "For player reputation",
@@ -2797,7 +2813,7 @@
   },
   "VIEW_DESTINATION": {
     "description": "Tooltip indicating the button will change the current view to the destination of a route.",
-    "message": "View Destination"
+    "message": "Visa destination"
   },
   "VISIT_PAINTSHOP": {
     "description": "Ship Repair tab button.",

@@ -45,7 +45,7 @@
   },
   "ADTITLE_RESCUE": {
     "description": "",
-    "message": "BAUCHE HILFE"
+    "message": "BRAUCHE HILFE"
   },
   "CLIENT": {
     "description": "",
@@ -142,10 +142,6 @@
   "SCOOP": {
     "description": "Name of mission type",
     "message": "Schöpfer"
-  },
-  "SET_AS_TARGET": {
-    "description": "",
-    "message": "Als Navigationsziel setzen"
   },
   "SHIP": {
     "description": "",

@@ -334,14 +334,29 @@ end, function (_, drawPopupFn)
 end)
 
 local function showSoundOptions()
+	local available_backends = Engine.GetAvailableSoundBackends()
+	local current_backend = Engine.GetSoundBackend()
 	local masterMuted = Engine.GetMasterMuted()
 	local masterLevel = Engine.GetMasterVolume()*100
 	local musicMuted = Engine.GetMusicMuted()
 	local musicLevel = Engine.GetMusicVolume()*100
 	local effectsMuted = Engine.GetEffectsMuted()
 	local effectsLevel = Engine.GetEffectsVolume()*100
+	local binaural_supported = Engine.IsBinauralRenderingSupported()
+	local binaural_enabled = Engine.GetBinauralRendering()
 
 	local c
+	local new_backend_idx
+	local current_backend_idx
+
+	for i, v in ipairs(available_backends) do
+		if v == current_backend then
+			current_backend_idx = i
+		end
+	end
+
+	c, new_backend_idx = combo(lui.AUDIO_BACKEND, current_backend_idx - 1, available_backends)
+	if c then Engine.SetSoundBackend(available_backends[new_backend_idx + 1]) end
 
 	c,masterMuted = checkbox(lui.MUTE.."##master", masterMuted)
 	if c then Engine.SetMasterMuted(masterMuted) end
@@ -360,10 +375,41 @@ local function showSoundOptions()
 	ui.sameLine()
 	c,effectsLevel = slider(lui.EFFECTS, effectsLevel, 0, 100)
 	if c then Engine.SetEffectsVolume(effectsLevel/100) end
+
+	if binaural_supported then
+		c,binaural_enabled = checkbox(lui.BINAURAL_RENDERING, binaural_enabled, lui.BINAURAL_RENDERING_DESC)
+		if c then Engine.SetBinauralRendering(binaural_enabled) end
+	end
 end
 
 local function showLanguageOptions()
 	local langs = Lang.GetAvailableLanguages("core")
+
+	local filtered = {}
+	for _, lang in ipairs(langs) do
+		if lang == "en" or lang == Lang.currentLanguage or Lang.GetLanguageCompletionPercent(lang) > 0 then
+			table.insert(filtered, lang)
+		end
+	end
+	langs = filtered
+
+	table.sort(langs, function(a, b)
+		if a == "en" then return true end
+		if b == "en" then return false end
+		return a < b
+	end)
+
+	local function languageLabel(lang)
+		local name = Lang.GetResource("core", lang).LANG_NAME
+		if lang == "en" then
+			return name
+		end
+		local pct = Lang.GetLanguageCompletionPercent(lang)
+		if pct >= 90 then
+			return name
+		end
+		return string.format("%s (%d%%)", name, pct)
+	end
 
 	ui.withFont(pionillium.heading, function()
 		ui.text(lui.LANGUAGE_RESTART_GAME_TO_APPLY .. ":")
@@ -372,7 +418,7 @@ local function showLanguageOptions()
 	ui.withFont(pionillium.body, function()
 		ui.child("##LanguageList", Vector2(0, 0), function()
 			for _, lang in ipairs(langs) do
-				if ui.selectable(Lang.GetResource("core",lang).LANG_NAME .. "##" .. lang, Lang.currentLanguage==lang, {}) then
+				if ui.selectable(languageLabel(lang) .. "##" .. lang, Lang.currentLanguage==lang, {}) then
 					Lang.SetCurrentLanguage(lang)
 				end
 			end

@@ -1,3 +1,73 @@
+July
+  * New Features
+    * Autopilot can now fly to the vicinity of a landed ship (#6379)
+    * OpenAL audio backend, allowing 3D audio (#6188)
+    * Findperson - New scenarios and greater linguistic variation in flavor strings (#6251)
+
+  * Fixes
+    * Fix for HUD trails not displaying in rotating frames (#6384)
+    * Fix ImGui error message of extending parent boundaries with `SetCursorPos` (#6380)
+    * BulkShips fix for running out of parking slots (#6385)
+
+  * Internal
+    * Fix return-value warning in PiGuiRenderer.cpp (#6374)
+
+June
+  * New Features
+    * Avast! Be ye knowin' of the Smuggler's Hold? (#6353)
+    * Save and recover Comms log (#6361)
+
+  * Fixes
+    * Advice module rewording (#6351)
+    * Font padding for umlaut in (#6358)
+    * Fix Kanara translation tokens (#6355)
+    * Make Cargo names upper case (#6357)
+    * Limit the number of messages on the saved Comms log (#6364)
+    * Round off new commodity stock on news event (#6365)
+
+  * Internal
+    * Update CMake and CI build files (#6359)
+    * Remove unused "set as target" strings (#6363)
+    * clang-format: Add SpaceBeforeCpp11BracedList: true (#6362)
+    * Remove debian/ directory - maintained outside source tree (#6367)
+
+May
+  * New Features
+    * Clarifying fuel pump directions (#6339)
+    * Add custom "Load cargo" button to cargo pickup missions (#6340)
+    * Render instanced models using per-frame scratch buffer (#6348)
+    * UI / HUD tweak: Shorten Hyercloud text (#6333)
+    * UI: Info box in sector map auto-opens (#6333)
+    * Pause sound when game is paused (#6333)
+
+  * Fixes
+    * Fix placeAdvert error in Scoop.lua (#6335)
+    * Make thruster visual more consistent (#6342)
+    * Fix typo in MISSILE_NAVAL_FLAVOURTEXT: personel -> personnel (#6337)
+    * Make giant stars circular in system overview (#6341)
+    * Add string for missing hypercloud analyzer message (#6328)
+    * Balance number of combat and scout missions (#6310)
+    * Fixing missing material transparencies (#6347)
+    * Fix no frame of reference in binary star systems (#6329)
+    * Fix buildings rendered incorrectly / in the sky, and/or crash to desktop (#6348)
+
+April
+  * New Features
+    * Approximate ring shadow penumbra (#6309)
+    * Add ObjectViewer button to perfinfo debug view (#6316)
+
+  * Fixes
+    * Scoop mission fix: Game.player.frameBody being nil (#6313)
+    * Don't mess with velocity if the ship just docked (#6327)
+    * Fix stale docking clearance timeout & position (centre of planet) (#6325)
+    * Fix refuel mission crash: TraceRay using stale static geometry (#6321)
+    * Fix quitting showing death animation: Clear the next lifecycle variable after using it (#6323)
+    * Reduce the occurrence of random crashes (#6319)
+    * Make scanning missions survive hyperspace jumps (#6331)
+    * Fix for Barnard's Star display issues (#6318)
+    * Fix for station names disappearing (#6332)
+    * Fix enemies target velocity vector. Draw HUD trails relative to the player (#6315)
+
 March
   * New Features
     * Show the status of the wanted person (#6298)

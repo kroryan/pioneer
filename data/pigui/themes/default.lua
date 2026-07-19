@@ -67,6 +67,7 @@ local styleColors = {
 	primary_700		= Color "40477D",
 	primary_800		= Color "383C71",
 	primary_900		= Color "2C2D58",
+	primary_1000	= Color "1C1C35",
 
 	-- "Alternate" primary colors with significantly more saturation for use
 	-- as small foreground elements like checkmarks and grabs.
@@ -221,6 +222,7 @@ theme.colors = {
 	ButtonHovered			= theme.buttonColors.default.hovered,
 	ButtonActive			= theme.buttonColors.default.active,
 	CheckMark				= styleColors.primary_300a,
+	CheckboxSelectedBg      = styleColors.panel_800,
 	PopupBg					= styleColors.panel_900,
 	ModalWindowDimBg		= styleColors.black:opacity(0.35),
 	FrameBg					= styleColors.panel_800,
@@ -713,6 +715,8 @@ theme.icons = {
 
 	chevron_up = 38,
 	chevron_down = 40,
+	chevron_left = 23,
+	chevron_right = 39,
 
 	-- BBS Replacement icons
 	mission_generic = 51,
