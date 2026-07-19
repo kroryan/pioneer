@@ -67,10 +67,25 @@ jobs:
         name: "Lua API documentation"
         path: docs
 
+    - name: Check whether GitHub Pages is enabled
+      id: pages
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        if gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "enabled=false" >> "$GITHUB_OUTPUT"
+          echo "::warning::GitHub Pages is not enabled. The documentation artifact was built successfully, but deployment was skipped."
+        fi
+
     - name: Setup Pages
+      if: ${{ steps.pages.outputs.enabled == 'true' }}
       uses: actions/configure-pages@v6
 
     - name: Upload pages
+      if: ${{ steps.pages.outputs.enabled == 'true' }}
       uses: actions/upload-pages-artifact@v5
       with:
         # only upload docs/ folder
@@ -78,5 +93,6 @@ jobs:
         include-hidden-files: true # restore legacy v3 behavior
 
     - name: Deploy to GitHub Pages
+      if: ${{ steps.pages.outputs.enabled == 'true' }}
       id: deployment
       uses: actions/deploy-pages@v5
