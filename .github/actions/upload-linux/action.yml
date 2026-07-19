@@ -1,5 +1,5 @@
-name: "Upload Linux Artifacts"
-description: "Manage generating and uploading release artifacts for linux builds"
+name: "Upload Linux Artifact"
+description: "Generate and upload a portable Linux build artifact"
 
 inputs:
   artifact_name:
@@ -8,15 +8,6 @@ inputs:
   build_slug:
     description: "platform-arch-build-flags"
     required: true
-  token:
-    description: "access token for uploading to releases"
-    default: ""
-  upload_release:
-    description: "should the binary be uploaded to a tagged release?"
-    default: false
-  tag_name:
-    description: "release tag to upload artifacts to"
-    default: ""
 
 runs:
   using: "composite"
@@ -39,19 +30,4 @@ runs:
         name: ${{ inputs.artifact_name }}
         path: ${{ format('out/install/pioneer-{0}-*.tar.gz', inputs.build_slug) }}
         retention-days: 14
-        archive: false
-
-    - name: Build Release
-      shell: bash
-      env:
-        BUILD_SLUG: ${{ inputs.build_slug }}
-      run: ./scripts/package-release.sh
-
-    - name: Upload Release Files
-      uses: softprops/action-gh-release@v3
-      if: ${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && inputs.upload_release }}
-      with:
-        files: release/pioneer-linux-x64-*.tar.gz
-        tag_name: ${{ inputs.tag_name || github.ref_name }}
-      env:
-        GITHUB_TOKEN: ${{ inputs.token }}
+        if-no-files-found: error

@@ -1,5 +1,5 @@
-name: "Upload Linux Artifacts"
-description: "Manage generating and uploading release artifacts for linux builds"
+name: "Upload AppImage Artifact"
+description: "Generate and upload an AppImage artifact"
 
 inputs:
   artifact_name:
@@ -8,15 +8,9 @@ inputs:
   build_slug:
     description: "platform-arch-build-flags"
     required: true
-  token:
-    description: "access token for uploading to releases"
-    default: ""
-  upload_release:
-    description: "should the binary be uploaded to a tagged release?"
-    default: false
-  tag_name:
-    description: "release tag to upload artifacts to"
-    default: ""
+  artifact_file_name:
+    description: "file name for the generated AppImage"
+    default: "Pioneer-x86_64.AppImage"
 
 runs:
   using: "composite"
@@ -29,25 +23,23 @@ runs:
       shell: bash
       env:
         BUILD_SLUG: ${{ inputs.build_slug }}
+        ARTIFACT_FILE_NAME: ${{ inputs.artifact_file_name }}
       run: |
-        VERSION=`curl -Ls -o /dev/null -w %{url_effective} https://github.com/linuxdeploy/linuxdeploy/releases/latest|awk -F/ '{print $NF}'`
-        wget https://github.com/linuxdeploy/linuxdeploy/releases/download/$VERSION/linuxdeploy-x86_64.AppImage
+        curl --fail --location --retry 3 \
+          --output linuxdeploy-x86_64.AppImage \
+          https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
         chmod a+x linuxdeploy-x86_64.AppImage
-        ARCH=x86_64 ./linuxdeploy-x86_64.AppImage --appdir "out/install/pioneer-$BUILD_SLUG" --output appimage
+        ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 \
+          ./linuxdeploy-x86_64.AppImage \
+          --appdir "out/install/pioneer-$BUILD_SLUG" \
+          --output appimage
+        mv Pioneer*.AppImage "$ARTIFACT_FILE_NAME"
+        test -s "$ARTIFACT_FILE_NAME"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v7
       with:
         name: ${{ inputs.artifact_name }}
-        path: ${{ format('Pioneer*.AppImage', inputs.build_slug) }}
+        path: ${{ inputs.artifact_file_name }}
         retention-days: 14
-        archive: false
-
-    - name: Upload Release Files
-      uses: softprops/action-gh-release@v3
-      if: ${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && inputs.upload_release }}
-      with:
-        files: Pioneer*.AppImage
-        tag_name: ${{ inputs.tag_name || github.ref_name }}
-      env:
-        GITHUB_TOKEN: ${{ inputs.token }}
+        if-no-files-found: error

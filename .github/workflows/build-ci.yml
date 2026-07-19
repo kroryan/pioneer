@@ -1,6 +1,4 @@
-# Test all pull requests to ensure they build
-
-name: Build Pioneer
+name: Build Pioneer and Continuous Release
 
 # Controls when the action will run.
 on:
@@ -15,15 +13,7 @@ on:
     - '.github/workflows/build-ci.yml'
     - '.github/actions/*/action.yml'
     - 'cmake/*.cmake'
-  release:
-    types: [published]
   workflow_dispatch:
-    inputs:
-      tag_name:
-        description: The release tag name to update
-        default: ''
-        required: true
-        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -49,10 +39,6 @@ jobs:
     runs-on: windows-2022
 
     steps:
-    - name: Install Dependencies
-      run: |
-        choco install gawk -y
-
     - uses: actions/checkout@v6
       with:
         path: pioneer
@@ -63,10 +49,24 @@ jobs:
         repository: pioneerspacesim/pioneer-thirdparty
         path: pioneer-thirdparty
 
-    - name: Build MSVC
+    - name: Checkout ReShade headers
+      uses: actions/checkout@v6
+      with:
+        repository: kroryan/pioneer-thirdparty
+        ref: 329a2b5b6ee854e6b9037b769ea84eade8b58402
+        path: pioneer-thirdparty-reshade
+        sparse-checkout: win32/include/reshade
+
+    - name: Add ReShade headers to pioneer-thirdparty
       shell: cmd
       run: |
-        for /f %%i in ('echo ${{ github.ref }} ^| awk -F "/" "/pull/ { print \"PR#\"$3 } /heads/ { print $3 }"') do set PROJECT_VERSION_INFO=%%i
+        xcopy /E /I /Y pioneer-thirdparty-reshade\win32\include\reshade pioneer-thirdparty\win32\include\reshade
+
+    - name: Build MSVC
+      shell: cmd
+      env:
+        PROJECT_VERSION_INFO: ${{ github.ref_name }}
+      run: |
         echo Project Version: %PROJECT_VERSION_INFO%
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         cd pioneer
@@ -89,23 +89,16 @@ jobs:
         cd build
         cmake --build . --target install
         cmake --build . --target win-installer
+        cd ..
+        for %%f in (pioneer-*-win.exe) do move /Y "%%f" "Pioneer-continuous-windows-x64.exe"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v7
       with:
-        name: Windows-Artifacts
-        path: pioneer/pioneer-*-win.exe
+        name: continuous-windows
+        path: pioneer/Pioneer-continuous-windows-x64.exe
         retention-days: 14
-        archive: false
-
-    - name: Upload Release Files
-      uses: softprops/action-gh-release@v3
-      if: ${{ github.event_name == 'release' || github.event_name == 'workflow_dispatch' }}
-      with:
-        files: pioneer/pioneer-*-win.exe
-        tag_name: ${{ inputs.tag_name || github.ref_name }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if-no-files-found: error
 
   build-gcc:
     runs-on: ubuntu-22.04
@@ -139,9 +132,6 @@ jobs:
       with:
         artifact_name: Linux 64-bit
         build_slug: linux-x64-release
-        token: ${{ secrets.GITHUB_TOKEN }}
-        upload_release: true
-        tag_name: ${{ inputs.tag_name }}
 
   build-clang:
     runs-on: ubuntu-22.04
@@ -175,7 +165,7 @@ jobs:
 
   build-appimage:
     runs-on: ubuntu-22.04
-    if: ${{github.event_name == 'release' || github.event_name == 'workflow_dispatch'}}
+    if: ${{ github.event_name != 'pull_request' }}
     steps:
     # Checkout the repository as $GITHUB_WORKSPACE
     - uses: actions/checkout@v6
@@ -202,8 +192,83 @@ jobs:
     - name: Generate Artifacts
       uses: ./.github/actions/upload-appimage
       with:
-        artifact_name: Linux 64-bit Appimage
+        artifact_name: continuous-appimage
         build_slug: linux-x64-release-appimage
-        token: ${{ secrets.GITHUB_TOKEN }}
-        upload_release: true
-        tag_name: ${{ inputs.tag_name }}
+        artifact_file_name: Pioneer-continuous-linux-x86_64.AppImage
+
+  continuous-release:
+    name: Update Continuous Build prerelease
+    runs-on: ubuntu-latest
+    needs:
+    - build-msvc
+    - build-gcc
+    - build-clang
+    - build-appimage
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download Windows artifact
+      uses: actions/download-artifact@v8
+      with:
+        name: continuous-windows
+        path: release-assets
+
+    - name: Download AppImage artifact
+      uses: actions/download-artifact@v8
+      with:
+        name: continuous-appimage
+        path: release-assets
+
+    - name: Verify release assets
+      shell: bash
+      run: |
+        test -s release-assets/Pioneer-continuous-windows-x64.exe
+        test -s release-assets/Pioneer-continuous-linux-x86_64.AppImage
+
+    - name: Create release notes
+      shell: bash
+      run: |
+        printf '%s\n' \
+          "Triggered on $(date -u +'%Y/%m/%d, %H:%M UTC') by commit ${GITHUB_SHA::7} (@${GITHUB_ACTOR})" \
+          "" \
+          "This is an automated build of the latest source. It may be unstable or even crash, corrupt your save or eat your kitten. Use with caution!" \
+          > release-notes.md
+
+    - name: Move continuous tag to this commit
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/continuous" >/dev/null 2>&1; then
+          gh api \
+            --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/git/refs/tags/continuous" \
+            -f sha="${GITHUB_SHA}" \
+            -F force=true
+        else
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/continuous" \
+            -f sha="${GITHUB_SHA}"
+        fi
+
+    - name: Create or update prerelease
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        if gh release view continuous >/dev/null 2>&1; then
+          gh release edit continuous \
+            --title "Continuous Build" \
+            --notes-file release-notes.md \
+            --prerelease
+        else
+          gh release create continuous \
+            --title "Continuous Build" \
+            --notes-file release-notes.md \
+            --prerelease
+        fi
+        gh release upload continuous release-assets/* --clobber
