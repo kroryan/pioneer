@@ -429,11 +429,14 @@ Serializer:Register("StationServices",
 		return state
 	end,
 	function(data)
-		if data then
+		if data and type(data) == "table" then
 			state = data
-			if not state.active_effects then state.active_effects = {} end
-			if not state.services_used then state.services_used = 0 end
+		else
+			state = { active_effects = {}, services_used = 0 }
+			data = nil
 		end
+		if not state.active_effects then state.active_effects = {} end
+		if not state.services_used then state.services_used = 0 end
 		ads = {}
 	end
 )

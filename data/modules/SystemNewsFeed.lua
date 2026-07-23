@@ -121,7 +121,7 @@ local function generateNews()
 	local vars = {
 		system = sysName,
 		faction = factionName,
-		name = NameGen.FullName(nil, Engine.rand),
+		name = (function() local ok, n = pcall(function() return NameGen.FullName(nil, Engine.rand) end); return ok and n or "Unknown Figure" end)(),
 		lawlessness = tostring(math.floor(lawlessness * 100)),
 		population = tostring(math.floor(population * 100)),
 	}

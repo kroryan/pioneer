@@ -240,8 +240,10 @@ Serializer:Register("FleetWar",
         }
     end,
     function(data)
-        if data then
-            BattleManager.history = data.history or {}
+        if data and type(data) == "table" then
+            -- Safe guard: ensure history is an array even with old saves (v1.0 might have ships field instead)
+            local hist = data.history
+            BattleManager.history = type(hist) == "table" and hist or {}
         end
     end
 )

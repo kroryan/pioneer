@@ -11,6 +11,16 @@ local MissionUtils  = require 'modules.MissionUtils'
 
 local WarDisplay = {}
 
+-- Cooldown tracking to prevent infinite battle spam from War Zone Contracts
+local last_contract_time = 0
+local CONTRACT_COOLDOWN = 5 * 3600 -- 5 game hours between contracts
+
+local function contractCooldownReady()
+    if not Game.system then return true end
+    local elapsed = Game.time - last_contract_time
+    return elapsed >= CONTRACT_COOLDOWN
+end
+
 -- Helper: safe string format that never raises
 local function fmt(s, ...) return string.format(s, ...) end
 
@@ -91,7 +101,15 @@ local function onWarContractChat(form, ref, option)
         form:AddOption("Decline", "DECLINE")
 
     elseif option == "TRIGGER" then
-        -- Force spawn a battle
+        -- Force spawn a battle (with cooldown to prevent spam)
+        if not contractCooldownReady() then
+            local remaining_mins = math.ceil((CONTRACT_COOLDOWN - (Game.time - last_contract_time)) / 60)
+            form:SetMessage(
+                string.format("Contract window recharging. Please wait %d more minutes.", remaining_mins))
+            form:RemoveAdvertOnClose()
+            return
+        end
+
         local battle = BattleManager.GetActiveBattle()
         if battle then
             form:SetMessage("A battle is already in progress. Head to the conflict zone.")
@@ -116,6 +134,8 @@ local function onWarContractChat(form, ref, option)
 
         local new_battle = BattleManager.SpawnBattle(conflict, fleet_size, threat)
         if new_battle then
+            -- Set cooldown timestamp to prevent rapid repeat triggers
+            last_contract_time = Game.time
             form:SetMessage(fmt(
                 "Engagement triggered!\n\n"..
                 "%s vs %s — %d ships per side near %s.\n\n"..
