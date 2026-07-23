@@ -411,19 +411,18 @@ local function showLanguageOptions()
 		return string.format("%s (%d%%)", name, pct)
 	end
 
-	ui.withFont(pionillium.heading, function()
-		ui.text(lui.LANGUAGE_RESTART_GAME_TO_APPLY .. ":")
-	end)
+	ui.text(lui.LANGUAGE_RESTART_GAME_TO_APPLY .. ":")
 
-	ui.withFont(pionillium.body, function()
-		ui.child("##LanguageList", Vector2(0, 0), function()
-			for _, lang in ipairs(langs) do
-				if ui.selectable(languageLabel(lang) .. "##" .. lang, Lang.currentLanguage==lang, {}) then
-					Lang.SetCurrentLanguage(lang)
-				end
+	ui.child("##LanguageList", Vector2(0, -ui.getTextLineHeightWithSpacing()), function()
+		for _, lang in ipairs(langs) do
+			if ui.selectable(languageLabel(lang) .. "##" .. lang, Lang.currentLanguage==lang, {}) then
+				Lang.SetCurrentLanguage(lang)
 			end
-		end)
+		end
 	end)
+	ui.text("Please consider contributing to our")
+	ui.sameLine()
+	ui.textLinkOpenURL("translations", "https://wiki.pioneerspacesim.net/wiki/Translations")
 end
 
 local function actionBinding(info)
@@ -769,7 +768,7 @@ end, function (_, drawPopupFn)
 end)
 
 function ui.optionsWindow:changeState()
-    if not self.isOpen then
+	if not self.isOpen then
 		self:open()
 	else
 		self:close()

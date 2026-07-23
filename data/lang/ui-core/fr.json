@@ -1205,7 +1205,7 @@
   },
   "HUD_GRAVITY_INDICATOR": {
     "description": "Tooltip: describe what the gravity indicator shows",
-    "message": "Local gravity acceleration (scale: ship maximum acceleration)"
+    "message": "Accélération de la gravité locale (échelle: accélération maximale du vaisseau)"
   },
   "HUD_HULL_STRENGTH": {
     "description": "Tooltip: Hull Strength.",
@@ -1325,7 +1325,7 @@
   },
   "HUD_THRUST_INDICATOR": {
     "description": "Tooltip: describe what the thrust indicator shows",
-    "message": "Show current thrust levels for maneuvering (outer ring) and primary or retro engines (center circle)"
+    "message": "Afficher les niveau de poussée actuels pour manœuvrer (anneau extérieur) et moteur principaux ou arrières (anneau intérieur)"
   },
   "HUD_WARNING_DESCENT_RATE": {
     "description": "Shown on HUD as a warning flasher",

@@ -229,7 +229,7 @@
   },
   "INTROTEXT_DELIVER_DOCUMENT_FEMALE_4": {
     "description": "",
-    "message": "Good day! I'm {client} and I represent {company}. We need to have a document delivered to {wanted} in {system}. We also need to see it signed and returned to us at this location. We don't know her precise location but she is somewhere in the {system} ({sectorx}, {sectory}, {sectorz}) system."
+    "message": "Bonjour ! Je suis {client} et je représente {company}. Nous avons besoin d'envoyer un document à {wanted} dans le système {system}. Nous avons aussi besoin que le document soit signé et qu'il nous soit retourné ici. Nous n'avons pas exactement où, mais elle se trouve dans le système {system} ({sectorx}, {sectory}, {sectorz})."
   },
   "INTROTEXT_DELIVER_DOCUMENT_MALE_1": {
     "description": "",
@@ -245,79 +245,79 @@
   },
   "INTROTEXT_DELIVER_DOCUMENT_MALE_4": {
     "description": "",
-    "message": "Good day! I'm {client} and I represent {company}. We need to have a document delivered to {wanted} in {system}. We also need to see it signed and returned to us at this location. We don't know his precise location but he is somewhere in the {system} ({sectorx}, {sectory}, {sectorz}) system."
+    "message": "Bonjour ! Je suis {client} et je représente {company}. Nous avons besoin d'envoyer un document à {wanted} dans le système {system}. Nous avons aussi besoin que le document soit signé et qu'il nous soit retourné ici. Nous n'avons pas exactement où, mais il se trouve dans le système {system} ({sectorx}, {sectory}, {sectorz})."
   },
   "INTROTEXT_DELIVER_MESSAGE_FEMALE_1": {
     "description": "",
-    "message": "Hi, my name is {client}. I'm looking for {relative}, {wanted}. She left the family in anger a few years ago. A friend of mine has seen her recently in the {system} ({sectorx}, {sectory}, {sectorz}) system. I would like to see if she is ready for a reconciliation. I pay you {cash} if you can deliver a message to her and return to {domicile} with an answer. Please do it! Will you?"
+    "message": "Salut, mon nom est {client}. Je tente de retrouver {relative}, {wanted}. elle a quitté la famille à la suite d'une dispute il y a quelques années de cela. Un de mes amis l'a récemment aperçu dans le système {system} ({sectorx}, {sectory}, {sectorz}). J'aimerais savoir si elle est prête pour une réconciliation. Je vous paierai {cash} si vous pouvez lui délivrer un message puis revenez nous délivrer sa réponse à {domicile}. Acceptez ce job, je vous en prie !"
   },
   "INTROTEXT_DELIVER_MESSAGE_FEMALE_2": {
     "description": "",
-    "message": "Hello. I'm {client}. I'm looking for {friend}. Her name is {wanted}. I know she resides in the {system} ({sectorx}, {sectory}, {sectorz}) system, but I don't know her exact location. I will pay you {cash} if you can deliver a message to her."
+    "message": "Bonjour. Je suis {client}. Je suis à la recherche de {friend}. Son nom est {wanted}. Je sais qu'elle réside dans le système {system} ({sectorx}, {sectory}, {sectorz}), mais je ne sais pas exactement où. Je vous paierai {cash} si vous pouvez lui délivrer un message."
   },
   "INTROTEXT_DELIVER_MESSAGE_FEMALE_3": {
     "description": "",
-    "message": "Hello. My name is {client}. I need to get in contact with {friend}, {wanted}. The last time I heard from her she was living in the {system} ({sectorx}, {sectory}, {sectorz}) system, and I've heard she's still there but don't know precisely where. I will pay you {cash} if you can deliver a message to her."
+    "message": "Bonjour. Mon nom est {client}. J'ai besoin de contacter {friend}, {wanted}. La dernière fois que je lui parlé, elle vivait dans le système {system} ({sectorx}, {sectory}, {sectorz}). On m'a dit qu'elle vivait toujours là-bas, mais je ne sais pas exactement où. Je vous paierai {cash} si vous parvenez à lui délivrer un message."
   },
   "INTROTEXT_DELIVER_MESSAGE_FEMALE_4": {
     "description": "",
-    "message": "Hello. My name is {client}. {relative}, {wanted}, accepted a position in the {system} ({sectorx}, {sectory}, {sectorz}) system some years ago. After a year we stopped hearing from her and now the mail is being returned so something must have happened. My family will pay {cash} if you can track her down and deliver a message."
+    "message": "Salutations. Mon nom est {client}. {relative}, {wanted}, a trouvé un un emploi dans le système {system} ({sectorx}, {sectory}, {sectorz}). Après une année passée là-bas, nous n'avons plus eu de nouvelle d'elle et maintenant le courrier nous est retourné, donc quelque chose a dû lui arriver. Ma famille paiera {cash} si vous pouvez la retrouver et lui délivrer un message."
   },
   "INTROTEXT_DELIVER_MESSAGE_FEMALE_5": {
     "description": "",
-    "message": "Good day, I'm {client}! I need to get a message delivered to my professor, {wanted}, who is doing research in the {system} ({sectorx}, {sectory}, {sectorz}) system. I haven't heard from her in six months, and the contact information I have is no longer valid. I'm prepared to pay {cash} for the service."
+    "message": "Bonjour, je suis {client} ! J'ai besoin de délivrer un message à mon professeur, {wanted}, qui effectue des recherches dans le système {system} ({sectorx}, {sectory}, {sectorz}). Je n'ai plus de nouvelles depuis 6 mois et les informations pour la contacter ne sont plus valides. Je suis prêt à payer {cash} pour le service."
   },
   "INTROTEXT_DELIVER_MESSAGE_MALE_1": {
     "description": "",
-    "message": "Hi, my name is {client}. I'm looking for {relative}, {wanted}. He left the family in anger a few years ago. A friend of mine has seen him recently in the {system} ({sectorx}, {sectory}, {sectorz}) system. I would like to see if he is ready for a reconciliation. I pay you {cash} if you can deliver a message to him and return to {domicile} with an answer. Please do it! Will you?"
+    "message": "Salut, mon nom est {client}. Je tente de retrouver {relative}, {wanted}. Il a quitté la famille à la suite d'une dispute il y a quelques années de cela. Un de mes amis l'a récemment aperçu dans le système {system} ({sectorx}, {sectory}, {sectorz}). J'aimerais savoir si il est prêt pour une réconciliation. Je vous paierai {cash} si vous pouvez lui délivrer un message puis revenez nous délivrer sa réponse à {domicile}. Je vous en pris, aidez-moi !"
   },
   "INTROTEXT_DELIVER_MESSAGE_MALE_2": {
     "description": "",
-    "message": "Hello. I'm {client}. I'm looking for {friend}. His name is {wanted}. I know he resides in the {system} ({sectorx}, {sectory}, {sectorz}) system, but I don't know his exact location. I will pay you {cash} if you can deliver a message to him."
+    "message": "Bonjour. Je suis {client}. Je suis à la recherche de {friend}. Son nom est {wanted}. Je sais qu'il réside dans le système {system} ({sectorx}, {sectory}, {sectorz}), mais je ne sais pas exactement où. Je vous paierai {cash} si vous pouvez lui délivrer un message."
   },
   "INTROTEXT_DELIVER_MESSAGE_MALE_3": {
     "description": "",
-    "message": "Hello. My name is {client}. I need to get in contact with {friend}, {wanted}. The last time I heard from him he was living in the {system} ({sectorx}, {sectory}, {sectorz}) system, and I've heard he's still there but don't know precisely where. I will pay you {cash} if you can deliver a message to him."
+    "message": "Bonjour. Mon nom est {client}. J'ai besoin de contacter {friend}, {wanted}. La dernière fois que je lui parlé, il vivait dans le système {system} ({sectorx}, {sectory}, {sectorz}). On m'a dit qu'il vivait toujours là-bas, mais je ne sais pas exactement où. Je vous paierai {cash} si vous parvenez à lui délivrer un message."
   },
   "INTROTEXT_DELIVER_MESSAGE_MALE_4": {
     "description": "",
-    "message": "Hello. My name is {client}. {relative}, {wanted}, accepted a position in the {system} ({sectorx}, {sectory}, {sectorz}) system some years ago. After a year we stopped hearing from him and now the mail is being returned so something must have happened. My family will pay {cash} if you can track him down and deliver a message."
+    "message": "Salutations. Mon nom est {client}. {relative}, {wanted}, a trouvé un un emploi dans le système {system} ({sectorx}, {sectory}, {sectorz}). Après une année passée là-bas, nous n'avons plus eu de nouvelle de lui et maintenant le courrier nous est retourné, donc quelque chose a dû lui arriver. Ma famille paiera {cash} si vous pouvez le retrouver et lui délivrer un message."
   },
   "INTROTEXT_DELIVER_MESSAGE_MALE_5": {
     "description": "",
-    "message": "Good day, I'm {client}! I need to get a message delivered to my professor, {wanted}, who is doing research in the {system} ({sectorx}, {sectory}, {sectorz}) system. I haven't heard from him in six months, and the contact information I have is no longer valid. I'm prepared to pay {cash} for the service."
+    "message": "Bonjour, je suis {client} ! J'ai besoin de délivrer un message à mon professeur, {wanted}, qui effectue des recherches dans le système {system} ({sectorx}, {sectory}, {sectorz}). Je n'ai plus de nouvelles depuis 6 mois et les informations pour le contacter ne sont plus valides. Je suis prêt à payer {cash} pour le service."
   },
   "INTROTEXT_EVACUATION_FEMALE_1": {
     "description": "",
-    "message": "Hi. The {company} is in big trouble. Negotiations with an aggressive market competitor in the {system} ({sectorx}, {sectory}, {sectorz}) system, a distance of {dist} ly, went very badly. Our envoy, {wanted}, must be evacuated. Communication with her is very limited, so we don't know her exact location. We pay {cash} for this run."
+    "message": "Salut. La compagnie {company} a de gros soucis. Les négociations avec un compétiteur agressif dans le système {system} ({sectorx}, {sectory}, {sectorz}), à une distance de {dist} al., se sont très mal passées. Notre envoyée {wanted} doit être évacuée. Les communications avec elle sont très limitées et nous ne connaissons pas sa position exacte. Nous payons {cash} pour ce job."
   },
   "INTROTEXT_EVACUATION_FEMALE_2": {
     "description": "",
-    "message": "Hello. Call me {client}. I'm employed by the {company}. Our sales representative, {wanted}, in the {system} ({sectorx}, {sectory}, {sectorz}) system, distance {dist} ly, has come into conflict with some dangerous crooks. She doesn't trust the local authorities, so she's gone into hiding. We pay {cash} if you can find her and bring her back to {domicile} safely."
+    "message": "Bonjour. Appelez-moi {client}. Je suis employé par {company}. Notre commercialle {wanted}, située dans le système {system} ({sectorx}, {sectory}, {sectorz}), à une ditance de {dist} al., s'est retrouvée en conflit avec de dangereux escrocs. Elle se cache actuellement, car elle n'a pas confiance envers les autorités. Nous paierons {cash} si vous pouvez la trouver et parvenez à la ramener en sécurité à {domicile}."
   },
   "INTROTEXT_EVACUATION_FEMALE_3": {
     "description": "",
-    "message": "Hello, I'm {client}. I represent {company}. We need to get one of our employees out of the {system} system immediately. I can't go into greater details due to security concerns, but there is a credible threat to her safety. She has gone into hiding at one of the spaceports in the system, but she was unable to safely tell us which one. Her name is {wanted}, and she's somewhere in the {system} ({sectorx}, {sectory}, {sectorz}) system."
+    "message": "Bonjour, je suis {client}. Je représente l'entreprise {company}. Nous avons besoin d'exfiltrer une de nos employées hors du système {system} immédiatement. Par soucis de précaution, je ne peux fournir plus de détails, mais il y a une menace crédible pour sa sécurité. Elle se cache dans un des ports spatiaux du système mais n'a pas pu nous transmettre lequel. Son nom est {wanted} et elle est quelque part dans le système {system} ({sectorx}, {sectory}, {sectorz})."
   },
   "INTROTEXT_EVACUATION_FEMALE_4": {
     "description": "",
-    "message": "Hello! My name is {client}. I have been reached by the news that {relative}, {wanted}, have been targeted by criminals and had to leave her home in a hurry. She is hiding somewhere in the {system} ({sectorx}, {sectory}, {sectorz}) system, distance {dist} ly. The family wants to solve this discretely. We will pay {cash} if you can find her and bring her back to {domicile}."
+    "message": "Bonjour ! Mon nom est {client}. J'ai appris que {relative}, {wanted}, a été pris pour cible par des criminels et a dû quitter son domicile en urgence. Elle se cache quelque part dans le système {system} ({sectorx}, {sectory}, {sectorz}, à une distance de {dist} al. La famille souhaite que le problème soit résolu discrètement. Nous vous paierons {cash} si vous la trouvez et la ramenez à {domicile}. "
   },
   "INTROTEXT_EVACUATION_MALE_1": {
     "description": "",
-    "message": "Hi. The {company} is in big trouble. Negotiations with an aggressive market competitor in the {system} ({sectorx}, {sectory}, {sectorz}) system, a distance of {dist} ly, went very badly. Our envoy, {wanted}, must be evacuated. Communication with him is very limited, so we don't know his exact location. We pay {cash} for this run."
+    "message": "Salut. La compagnie {company} a de gros soucis. Les négociations avec un compétiteur agressif dans le système {system} ({sectorx}, {sectory}, {sectorz}), à une distance de {dist} al., se sont très mal passées. Notre envoyé {wanted} doit être évacué. Les communications avec lui sont très limitées et nous ne connaissons pas sa position exacte. Nous payons {cash} pour ce job."
   },
   "INTROTEXT_EVACUATION_MALE_2": {
     "description": "",
-    "message": "Hello. Call me {client}. I'm employed by the {company}. Our sales representative, {wanted}, in the {system} ({sectorx}, {sectory}, {sectorz}) system, distance {dist} ly, has come into conflict with some dangerous crooks. He doesn't trust the local authorities, so he's gone into hiding. We pay {cash} if you can find him and bring him back to {domicile} safely."
+    "message": "Bonjour. Appelez-moi {client}. Je suis employé par {company}. Notre commercial {wanted}, situé dans le système {system} ({sectorx}, {sectory}, {sectorz}), à une ditance de {dist} al., s'est retrouvé en conflit avec de dangereux escrocs. Il se cache actuellement, car il n'a pas confiance envers les autorités. Nous paierons {cash} si vous pouvez le trouver et si parvenez à le ramener en sécurité à {domicile}."
   },
   "INTROTEXT_EVACUATION_MALE_3": {
     "description": "",
-    "message": "Hello, I'm {client}. I represent {company}. We need to get one of our employees out of the {system} system immediately. I can't go into greater details due to security concerns, but there is a credible threat to his safety. He has gone into hiding at one of the spaceports in the system, but he was unable to safely tell us which one. His name is {wanted}, and he's somewhere in the {system} ({sectorx}, {sectory}, {sectorz}) system."
+    "message": "Bonjour, je suis {client}. Je représente l'entreprise {company}. Nous avons besoin d'exfiltrer un de nos employés hors du système {system} immédiatement. Par soucis de précaution, je ne peux fournir plus de détails, mais il y a une menace crédible pour sa sécurité. Il se cache dans un des ports spatiaux du système mais n'a pas pu nous transmettre lequel. Son nom est {wanted} et il est quelque part dans le système {system} ({sectorx}, {sectory}, {sectorz})."
   },
   "INTROTEXT_EVACUATION_MALE_4": {
     "description": "",
-    "message": "Hello! My name is {client}. I have been reached by the news that {relative}, {wanted}, have been targeted by criminals and had to leave his home in a hurry. He is hiding somewhere in the {system} ({sectorx}, {sectory}, {sectorz}) system, distance {dist} ly. The family wants to solve this discretely. We will pay {cash} if you can find him and bring him back to {domicile}."
+    "message": "Bonjour ! Mon nom est {client}. J'ai appris que {relative}, {wanted}, a été pris pour cible par des criminels et a dû quitter son domicile en urgence. Il se cache quelque part dans le système {system} ({sectorx}, {sectory}, {sectorz}, à une distance de {dist} al. La famille souhaite que le problème soit résolu discrètement. Nous vous paierons {cash} si vous le trouvez et le ramenez à {domicile}. "
   },
   "INTROTEXT_PRIVATEER_FEMALE_1": {
     "description": "",
@@ -329,7 +329,7 @@
   },
   "INTROTEXT_PRIVATEER_FEMALE_3": {
     "description": "",
-    "message": "Hi there! My name is {client} and I need help to get a message through to {wanted} in the {system} ({sectorx}, {sectory}, {sectorz}) system. She flies missions there and her ship is registered as {shipid}. I will pay you {cash} upon returning to {domicile} with an answer."
+    "message": "Salut ! Mon nom est {client} et j'ai besoin de délivrer un message à {wanted} dans le système {system} ({sectorx}, {sectory}, {sectorz}). Elle effectue des missions là-bas et son vaisseau est immatriculé {shipid}. Je vous paierai {cash} une fois de retour à {domicile} avec une réponse."
   },
   "INTROTEXT_PRIVATEER_MALE_1": {
     "description": "",
@@ -341,7 +341,7 @@
   },
   "INTROTEXT_PRIVATEER_MALE_3": {
     "description": "",
-    "message": "Hi there! My name is {client} and I need help to get a message through to {wanted} in the {system} ({sectorx}, {sectory}, {sectorz}) system. He flies missions there and his ship is registered as {shipid}. I will pay you {cash} upon returning to {domicile} with an answer."
+    "message": "Salut ! Mon nom est {client} et j'ai besoin de délivrer un message à {wanted} dans le système {system} ({sectorx}, {sectory}, {sectorz}). Il effectue des missions là-bas et son vaisseau est immatriculé {shipid}. Je vous paierai {cash} une fois de retour à {domicile} avec une réponse."
   },
   "INTROTEXT_TAXI_FEMALE_1": {
     "description": "",
