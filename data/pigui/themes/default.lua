@@ -56,7 +56,8 @@ local styleColors = {
 
 	-- Primary color is used for all interactable elements and certain headers
 	-- and other dividing elements.
-	-- Generated with the Material Design 2 tool
+	-- Generated with the Material Design 2 tool:
+	-- https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors
 
 	primary_100		= Color "C7CCDE",
 	primary_200		= Color "A4ABC8",
@@ -67,7 +68,7 @@ local styleColors = {
 	primary_700		= Color "40477D",
 	primary_800		= Color "383C71",
 	primary_900		= Color "2C2D58",
-	primary_1000	= Color "1C1C35",
+	primary_950		= Color "1C1C35",
 
 	-- "Alternate" primary colors with significantly more saturation for use
 	-- as small foreground elements like checkmarks and grabs.
@@ -180,6 +181,9 @@ theme.colors = {
 	maneuver				= styleColors.accent_300,
 	maneuverDark			= styleColors.accent_500,
 	mouseMovementDirection	= styleColors.accent_100,
+	landingAsstHorizon      = styleColors.success_500,
+	landingAsstYawTick      = styleColors.gray_300,
+	landingAsstGround       = styleColors.warning_700:opacity(0.1),
 
 	overlayWindowBg         = styleColors.panel_900:opacity(0.90),
 
@@ -255,6 +259,7 @@ theme.colors = {
 
 	alertYellow				= styleColors.warning_300,
 	alertRed				= styleColors.danger_500,
+	alertBrightRed			= styleColors.danger_300,
 	hyperspaceInfo			= styleColors.success_300,
 
 	notificationInfo		= styleColors.gray_500,
@@ -273,6 +278,7 @@ theme.colors = {
 	gaugeJettison           = styleColors.danger_500,
 
 	gaugeBackground			= styleColors.panel_900:opacity(0.85),
+	gaugeBarBackground		= styleColors.primary_900,
 	gaugePressure			= styleColors.primary_600,
 	gaugeScanner			= styleColors.primary_500,
 	gaugeTemperature		= styleColors.danger_500,
@@ -284,6 +290,10 @@ theme.colors = {
 	gaugeThrustLight		= styleColors.gray_500,
 	gaugeThrustDark			= styleColors.panel_900,
 	gaugeEquipmentMarket	= styleColors.primary_600,
+	gaugeTWR				= styleColors.primary_500,
+	gaugeTWRLow				= styleColors.warning_500,
+	gaugeTWRVeryLow			= styleColors.danger_500,
+
 
 	radarCargo				= styleColors.primary_200,
 	radarCloud				= styleColors.primary_200,
@@ -293,6 +303,7 @@ theme.colors = {
 	radarNavTarget			= styleColors.success_500,
 	radarShip				= styleColors.warning_500,
 	radarStation			= styleColors.accent_300,
+	radarLandingGuide		= styleColors.accent_300:opacity(0.6),
 	radarUnknown			= styleColors.gray_500,
 
 	systemMapGrid			= styleColors.panel_900,
@@ -729,6 +740,7 @@ theme.icons = {
 	filter_ships = 120,
 	equip_scanner = 60,
 	equip_generic = 145,
+	radar_landing_loc = 73,
 
 	-- TODO: distinct icons for these
 	equip_thrusters_basic = 300,

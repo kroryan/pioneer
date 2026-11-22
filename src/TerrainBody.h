@@ -28,7 +28,17 @@ public:
 	virtual bool OnCollision(Body *b, Uint32 flags, double relVel) override { return true; }
 	double GetMass() const override { return m_mass; }
 	double GetTerrainHeight(const vector3d &pos) const;
+	// pos is a direction from the planet centre (need not be unit length).
+	vector3d GetTerrainSurfacePoint(const vector3d &pos) const;
+	// sampleSizeMeters is the approximate diameter of the area to sample (e.g. ship footprint).
+	vector3d GetTerrainSurfaceNormal(const vector3d &pos, double sampleSizeMeters) const;
 	const SystemBody *GetSystemBody() const override { return m_sbody; }
+
+	// Reduce terrain amplitude under a surface starport.
+	// centre is a unit-sphere position on the planet surface.
+	// radiusMeters is the surface radius of the fully-scaled disc (falloff may extend beyond).
+	// maxVariationMeters is the allowed max height from the model origin (typically the lowest landing pad).
+	void AddTerrainFlattenRegion(const vector3d &centre, double radiusMeters, double maxVariationMeters);
 
 	// returns value in metres
 	double GetMaxFeatureRadius() const { return m_maxFeatureHeight; }

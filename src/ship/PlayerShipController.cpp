@@ -488,6 +488,8 @@ void PlayerShipController::ApplyTotalAction(const TotalDesiredAction &params)
 	} else if (params.desiredLinear.LengthSqr() > 0) {
 		// unlock launchlock in case of activation of linear thrust
 		m_ship->m_launchLockTimeout = 0;
+	} else if (!params.desireLinVel) {
+		m_ship->ClearLinThrusterState();
 	}
 
 	m_ship->AIMatchAngVelObjSpace(params.desiredAngular, params.angPower, !params.desireAngVelFull);
@@ -979,13 +981,13 @@ void PlayerShipController::SetCombatTarget(Body *const target, bool setFollowTo)
 
 	m_combatTarget = target;
 	m_ship->GetComponent<GunManager>()->SetTrackingTarget(target);
-	onChangeTarget.emit();
+	onChangeTarget.emit(target);
 }
 
 void PlayerShipController::SetNavTarget(Body *const target)
 {
 	m_navTarget = target;
-	onChangeTarget.emit();
+	onChangeTarget.emit(target);
 }
 
 void PlayerShipController::SetFollowTarget(Body *const target)
@@ -997,9 +999,6 @@ void PlayerShipController::SetFollowTarget(Body *const target)
 		m_followTargetPrevVel = m_followTarget->GetVelocityRelTo(m_ship->GetFrame());
 	else
 		m_followTargetPrevVel = vector3d();
-
-	// TODO: not sure, do we actually need this? we are only changing the follow target
-	onChangeTarget.emit();
 }
 
 void PlayerShipController::SetCruiseDirection(CruiseDirection dir)

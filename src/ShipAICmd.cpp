@@ -304,11 +304,17 @@ bool AICmdKamikaze::TimeStepUpdate()
 		sqrt(aimCollisionSpeed * aimCollisionSpeed + 2 * dist * brake);
 
 	const vector3d aimVel = aimRelSpeed * targetDir + m_target->GetVelocityRelTo(m_dBody->GetFrame());
-	const vector3d accelDir = (aimVel - m_dBody->GetVelocity()).NormalizedSafe();
+	const vector3d velError = aimVel - m_dBody->GetVelocity();
+	// When nearly matched to the desired intercept velocity, velError is tiny and its
+	// direction is numerically unstable. Point at the target instead to avoid terminal wobble.
+	const double faceDirThreshold = aimCollisionSpeed * 0.1;
+	const vector3d faceDir = (velError.LengthSqr() <= faceDirThreshold * faceDirThreshold)
+		? targetDir
+		: velError.NormalizedSafe();
 
 	m_prop->ClearLinThrusterState();
 	m_prop->ClearAngThrusterState();
-	m_prop->AIFaceDirection(accelDir);
+	m_prop->AIFaceDirection(faceDir);
 
 	m_prop->AIAccelToModelRelativeVelocity(aimVel * m_dBody->GetOrient());
 
@@ -1207,12 +1213,6 @@ bool AICmdFlyTo::TimeStepUpdate()
 	// linear thrust application, decel check
 	vector3d vdiff = linaccel * reldir + perpspeed * perpdir;
 	bool decel = sdiff <= 0;
-	// TODO: what is "SetDecelerating"??? => needs to be moved
-	m_dBody->SetDecelerating(decel);
-	if (decel)
-		m_prop->AIChangeVelBy(vdiff * m_dBody->GetOrient());
-	else
-		m_prop->AIChangeVelDir(vdiff * m_dBody->GetOrient());
 
 	// work out which way to head
 	vector3d head = reldir;
@@ -1246,6 +1246,13 @@ bool AICmdFlyTo::TimeStepUpdate()
 		m_prop->AIFaceDirection(head);
 	if (body && body->IsType(ObjectType::PLANET) && m_dBody->GetPosition().LengthSqr() < 2 * erad * erad)
 		m_prop->AIFaceUpdir(m_dBody->GetPosition()); // turn bottom thruster towards planet
+
+	// TODO: what is "SetDecelerating"??? => needs to be moved
+	m_dBody->SetDecelerating(decel);
+	if (decel)
+		m_prop->AIChangeVelBy(vdiff * m_dBody->GetOrient());
+	else
+		m_prop->AIChangeVelDir(vdiff * m_dBody->GetOrient());
 
 	// termination conditions: check
 	if (m_state >= 3) return true; // finished last adjustment, hopefully
@@ -1442,10 +1449,6 @@ bool AICmdDock::TimeStepUpdate()
 	const double maxdecel = m_prop->GetAccelUp() - GetGravityAtPos(m_target->GetFrame(), m_dockpos);
 	const double ispeed = calc_ivel(relpos.Length(), 0.0, maxdecel);
 	const vector3d vdiff = ispeed * reldir - relvel;
-	m_prop->AIChangeVelDir(vdiff * m_dBody->GetOrient());
-	if (vdiff.Dot(reldir) < 0) {
-		m_dBody->SetDecelerating(true);
-	}
 
 	// get rotation of station for next frame
 	matrix3x3d trot = m_target->GetOrientRelTo(m_dBody->GetFrame());
@@ -1463,6 +1466,11 @@ bool AICmdDock::TimeStepUpdate()
 	}
 	if (af < 0.01) {
 		af = m_prop->AIFaceUpdir(trot * m_dockupdir, av) - ang;
+	}
+
+	m_prop->AIChangeVelDir(vdiff * m_dBody->GetOrient());
+	if (vdiff.Dot(reldir) < 0) {
+		m_dBody->SetDecelerating(true);
 	}
 	if (m_state < eInvalidDockingStage && af < 0.01 && ship->GetWheelState() >= 1.0f) {
 		IncrementState();
@@ -1670,9 +1678,9 @@ bool AICmdFlyAround::TimeStepUpdate()
 	double ivel = calc_ivel(alt - m_alt, 0.0, m_prop->GetAccelMin());
 
 	vector3d finalvel = tanvel + ivel * obsdir;
-	m_prop->AIMatchVel(finalvel);
 	m_prop->AIFaceDirection(fwddir);
 	m_prop->AIFaceUpdir(-obsdir);
+	m_prop->AIMatchVel(finalvel);
 
 	//	vector3d newhead = GenerateTangent(m_ship, m_obstructor->GetFrame(), fwddir);
 	//	newhead = GetPosInFrame(m_ship->GetFrame(), m_obstructor->GetFrame(), newhead);

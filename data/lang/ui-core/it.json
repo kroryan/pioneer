@@ -33,7 +33,7 @@
   },
   "ALL_UP_WEIGHT": {
     "description": "",
-    "message": "Peso in ordine di marcia"
+    "message": "Peso totale attuale"
   },
   "AMOUNT": {
     "description": "",
@@ -137,7 +137,7 @@
   },
   "CABINS": {
     "description": "For passengers",
-    "message": "Cabine"
+    "message": "Cuccette"
   },
   "CABIN_FREE": {
     "description": "Free capacity for passengers",
@@ -646,6 +646,10 @@
   "EQUIPMENT_MARKET": {
     "description": "",
     "message": "Mercato delle apparecchiature"
+  },
+  "EQUIPMENT_USED": {
+    "description": "",
+    "message": "Spazio di equipaggiamento usato"
   },
   "EQUIPPED": {
     "description": "",
@@ -1271,6 +1275,14 @@
     "description": "Mass",
     "message": "Massa"
   },
+  "HUD_ORBIT_APOAPSIS": {
+    "description": "Tooltip: Current orbital apoapsis.",
+    "message": "Apoapside dell’orbita attuale"
+  },
+  "HUD_ORBIT_PERIAPSIS": {
+    "description": "Tooltip: Current orbital apoapsis.",
+    "message": "Periapside dell’orbita attuale"
+  },
   "HUD_RADAR_DISTANCE": {
     "description": "Tooltip: Current distance of the radar.",
     "message": "Portata del radar selezionata"
@@ -1338,6 +1350,10 @@
   "HUD_WARNING_IMPACT_IMMINENT": {
     "description": "Alert tooltip",
     "message": "Impatto imminente"
+  },
+  "HUD_WARNING_TWR_DESTINATION": {
+    "description": "TWR (Thrust to Weight Ratio) HUD warning",
+    "message": "P/M a destinazione è {value}"
   },
   "HULL_DOES_NOT_REQUIRE_REPAIR": {
     "description": "",
@@ -1475,6 +1491,10 @@
     "description": "Flight State",
     "message": "In salto"
   },
+  "JUMP_REACHABLE": {
+    "description": "Tooltip indicating the jump listed in the route planner is possible under the current ship configuration.",
+    "message": "Salto a portata"
+  },
   "KILLS": {
     "description": "",
     "message": "Uccisioni:"
@@ -1570,6 +1590,10 @@
   "LOCAL_ARM": {
     "description": "Arm of the Milky Way galaxy",
     "message": "Braccio locale"
+  },
+  "LOCAL_GRAVITY": {
+    "description": "Gravity at the ship's current location, shown in the mass/TWR widget",
+    "message": "Gravità locale"
   },
   "LOCATED_N_KM_FROM_THE_CENTRE_OF_NAME": {
     "description": "",
@@ -1843,6 +1867,10 @@
     "description": "",
     "message": "Non ci sono abbastanza {alloy} per tentare la riparazione"
   },
+  "NOT_ENOUGH_SPACE_FOR_EQUIPMENT": {
+    "description": "",
+    "message": "Non c’è spazio per questo equipaggiamento"
+  },
   "NOT_SUPPORTED_ON_THIS_SHIP": {
     "description": "",
     "message": "{equipment} non è supportato da questo modello di astronave."
@@ -1879,21 +1907,13 @@
     "description": "",
     "message": "{range} anni luce ({maxRange} massimi)"
   },
-  "N_OCCUPIED_PASSENGER_CABINS": {
-    "description": "",
-    "message": "{quantity} Alloggi passeggeri occupati"
-  },
   "N_SHIELD_GENERATORS": {
     "description": "",
     "message": "{quantity} Generatori di Scudi"
   },
-  "N_UNOCCUPIED_PASSENGER_CABINS": {
-    "description": "",
-    "message": "{quantity} Alloggi passeggeri non occupati"
-  },
   "OCCUPIED_PASSENGER_CABINS": {
     "description": "",
-    "message": "Cabine passeggeri occupate"
+    "message": "Cuccette occupate"
   },
   "OFF": {
     "description": "",
@@ -1985,7 +2005,7 @@
   },
   "PASSENGER_CABIN_CAPACITY": {
     "description": "Entry for ship info",
-    "message": "Capienza passeggeri"
+    "message": "Portata passeggeri"
   },
   "PASTE": {
     "description": "As for clipboard",
@@ -2727,6 +2747,30 @@
     "description": "",
     "message": "Spegni"
   },
+  "TWR": {
+    "description": "Short label for the current thrust-to-weight ratio readout on the flight HUD",
+    "message": "P/M"
+  },
+  "TWR_AT_SURFACE": {
+    "description": "TWR (Thrust to Weight Ratio) at planet surface",
+    "message": "P/M sulla superficie"
+  },
+  "TWR_CURRENT": {
+    "description": "TWR (Thrust to Weight Ratio) at current location",
+    "message": "P/M (attuale)"
+  },
+  "TWR_CURRENT_TOOLTIP": {
+    "description": "",
+    "message": "Rapporto Potenza Massa (P/M) della nave nella posizione attuale.\nSe P/M è inferiore a 1.0, la nave non potrà decollare."
+  },
+  "TWR_TARGET": {
+    "description": "TWR (Thrust to Weight Ratio) at target nav location",
+    "message": "P/M (destinazione)"
+  },
+  "TWR_TARGET_TOOLTIP": {
+    "description": "",
+    "message": "Rapporto Potenza Massa (P/M) della nave a destinazione..\nSe P/M è inferiore a 1.0, la nave non potrà decollare."
+  },
   "TYPE": {
     "description": "",
     "message": "Tipo"
@@ -2761,7 +2805,7 @@
   },
   "UNOCCUPIED_PASSENGER_CABINS": {
     "description": "",
-    "message": "Cabine passeggeri libere"
+    "message": "Cuccette passeggeri libere"
   },
   "UNPROFITABLE_TRADE": {
     "description": "Indicates an unprofitable trade route.",
@@ -2779,9 +2823,13 @@
     "description": "",
     "message": "Accelerazione in alto"
   },
-  "USED": {
+  "UP_ACCEL_EMPTY": {
     "description": "",
-    "message": "Utilizzato"
+    "message": "Accelerazione in alto (vuoto)"
+  },
+  "USED": {
+    "description": "Usually shown with FREE as a pair, e.g. 4t used / 7t free",
+    "message": "vuoto"
   },
   "VERY_HIGH": {
     "description": "Game settings option: graphic resolution",

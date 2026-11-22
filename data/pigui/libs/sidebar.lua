@@ -16,7 +16,7 @@ local styles = ui.theme.styles
 local colors = ui.theme.colors
 local pionillum = ui.fonts.pionillium
 
-local windowFlags = ui.WindowFlags {"NoTitleBar", "NoResize", "NoSavedSettings", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoScrollbar"}
+local windowFlags = ui.WindowFlags {"NoTitleBar", "NoResize", "NoSavedSettings", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoScrollbar", "NoBackground" }
 local displayFlags = ui.WindowFlags {"NoTitleBar", "NoResize", "AlwaysAutoResize", "NoSavedSettings", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoScrollbar"}
 
 local animUp = 6
@@ -76,6 +76,21 @@ end
 function Sidebar:SafeCall(module, fn, ...)
 	if module.disabled or not fn then return end
 	module.disabled = not ui.pcall(fn, module, ...)
+end
+
+-- Manually force a module to become active without a transition.
+function Sidebar:MakeActive(module)
+	module.active = true
+	module.closing = false
+	module.alpha = nil
+
+	if self.active and self.active ~= module then
+		self.active.active = false
+		self.active.closing = false
+		self.active.alpha = nil
+	end
+
+	self.active = module.exclusive and module or nil
 end
 
 -- Update positions and sizes for the sidebar windows
@@ -285,7 +300,14 @@ function Sidebar:Refresh()
 	local activeModules = utils.filter_array(self.modules, function(v) return v.active and not v.disabled end)
 
 	for i, v in ipairs(activeModules) do
-		self:SafeCall(v, v.refresh)
+		-- note that we cannot and should not use ui.pcall here as Refresh() is
+		-- not guaranteed to be called only during the ImGui frame.
+		if not v.disabled and v.refresh then
+			v.disabled = not xpcall(v.refresh, function(msg)
+				logWarning("Error in sidebar refresh() function:\n\t" .. msg)
+				logWarning(debug.dumpstack(2))
+			end, v)
+		end
 	end
 
 	-- Handle the case where an exclusive module is default-open at startup or e.g. after hot-reload

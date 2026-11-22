@@ -176,7 +176,7 @@ local speed_limiter = (function()
 		ui.addRectFilled(cp, cp + Vector2(full_width, full_height), colors.Button, 0, ui.RoundCornersNone)
 		if anim_active then
 			ui.addRectFilled(cp + Vector2(0, txt_shift), cp + Vector2(full_width - ui.getItemSpacing().x, full_height - txt_shift), colors.lightBlackBackground, 0, ui.RoundCornersNone)
-			ui.addCursorPos(Vector2(full_width, 0))
+			ui.dummy(Vector2(full_width, 0))
 		else
 			-- because of this, the window became larger by <txt_shift> pixels from
 			-- the bottom (but this is invisible and it sticks out of the bottom edge
@@ -267,7 +267,7 @@ local function displayAutoPilotWindow()
 		end)
 end
 
-ui.registerModule("game", { id = "autopilot-window", draw = displayAutoPilotWindow, debugReload = function() package.reimport() end })
+ui.registerModule("world-view", { id = "autopilot-window", draw = displayAutoPilotWindow, debugReload = function() package.reimport() end })
 Event.Register("onGameStart", speed_limiter.reset)
 
 return {}

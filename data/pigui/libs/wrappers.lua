@@ -36,6 +36,9 @@ ui.RoundCornersAll = 0x0F
 -- A detailed stack dump of the error will be written to the game's output log
 -- and a traceback returned with the error message.
 --
+-- ui.pcall MUST be called inside of the ImGui frame. Attempts to call it in
+-- other states will produce fatal errors.
+--
 -- Example:
 --
 -- > local ok, err = ui.pcall(fun, ...)
@@ -443,20 +446,6 @@ end
 --
 function ui.isAnyWindowHovered()
 	return ui.isWindowHovered({"AnyWindow", "AllowWhenBlockedByPopup", "AllowWhenBlockedByActiveItem"})
-end
-
---
--- Function: ui.canClickOnScreenObjectHere
---
--- A set of checks sufficient to safely process a click at the current mouse
--- coordinates.
---
--- Returns:
---
---   boolean
---
-function ui.canClickOnScreenObjectHere()
-	return not ui.isAnyWindowHovered() and not ui.isAnyPopupOpen()
 end
 
 --

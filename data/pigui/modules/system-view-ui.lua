@@ -7,6 +7,7 @@ local Event = require 'Event'
 local Lang = require 'Lang'
 local ui = require 'pigui'
 local Format = require 'Format'
+local Gravity = require 'pigui.libs.gravity'
 local SpaceStation = require 'SpaceStation'
 local ShipDef = require 'ShipDef'
 local Constants = _G.Constants
@@ -350,6 +351,24 @@ local data_cache = {
 	body = {},
 	prev_body = nil
 }
+
+local function appendPlayerTWR(data, systemBody)
+	if not player then return data end
+
+	local out = {}
+	for _, row in ipairs(data) do
+		table.insert(out, row)
+		if row.name == lc.SURFACE_GRAVITY then
+			table.insert(out, {
+				name = luc.TWR_AT_SURFACE,
+				icon = icons.body_radius,
+				value = ui.Format.TWR(player:GetAcceleration("up") / (Gravity.GetSurfaceGravity(systemBody) or math.huge), 2),
+			})
+		end
+	end
+	return out
+end
+
 -- populate a data structure with information about the currently selected body
 local function getObjectData(obj)
 	local isSystemBody = obj.base == Projectable.SYSTEMBODY
@@ -453,6 +472,10 @@ local function getObjectData(obj)
 		else
 			data = {}
 		end
+	end
+
+	if isSystemBody then
+		return appendPlayerTWR(data, body)
 	end
 	return data
 end
@@ -652,6 +675,8 @@ local infoView = {
 
 			local data = getObjectData(obj)
 			tabular(data, 0)
+		else
+			ui.textColored(colors.fontDim, lc.SELECT_A_TARGET .. "...")
 		end
 	end
 }
@@ -987,6 +1012,9 @@ local expanded_hover_body = nil -- body with expanded hover area (atlas view onl
 local function displayOnScreenObjects()
 	local isOrrery = systemView:GetDisplayMode() == 'Orrery'
 
+	Windows.unexplored.visible = not systemView:GetSystem().explored
+	if Windows.unexplored.visible then return end
+
 	local should_show_label = isOrrery and ui.shouldShowLabels()
 
 	local label_offset = 14 -- enough so that the target rectangle fits
@@ -999,10 +1027,6 @@ local function displayOnScreenObjects()
 	-- to prevent overlap of selection regions
 	local objectCounter = 0
 	local objects_grouped = systemView:GetProjectedGrouped(collapse, 1e64)
-
-	-- if there's nothing to display, we're an unexplored system
-	Windows.unexplored.visible = #objects_grouped == 0
-	if Windows.unexplored.visible then return end
 
 	local hoveredObject = nil
 	local was_hovered = false
@@ -1031,7 +1055,7 @@ local function displayOnScreenObjects()
 
 		local mp = ui.getMousePos()
 		local label = getLabel(mainObject)
-		local mouseover = not ui.isAnyWindowHovered() and
+		local mouseover = ui.isWindowHovered() and
 			(mp - mainCoords):length() < (isOrrery and click_radius or math.max(click_radius, hoverSize))
 
 		if #label > 0 and (should_show_label or mouseover or should_show_ports) then
@@ -1072,7 +1096,7 @@ local function displayOnScreenObjects()
 		if mainObject.type == Projectable.OBJECT and (mainObject.base == Projectable.SYSTEMBODY or mainObject.base == Projectable.SHIP or mainObject.base == Projectable.PLAYER or mainObject.base == Projectable.OBJECT) then
 			-- mouse release handler for right button
 			if mouseover then
-				if not ui.isAnyWindowHovered() and ui.isMouseReleased(1) then
+				if ui.isWindowHovered() and ui.isMouseReleased(1) then
 					popup_object = mainObject
 					ui.openPopup("system-view-ui-popup")
 				end
@@ -1094,7 +1118,7 @@ local function displayOnScreenObjects()
 
 	-- click once: select or deselect a body
 	-- double click: zoom to body or reset viewpoint
-	local clicked = not ui.isAnyWindowHovered() and (ui.isMouseClicked(0) or ui.isMouseDoubleClicked(0))
+	local clicked = ui.isWindowHovered() and (ui.isMouseClicked(0) or ui.isMouseDoubleClicked(0))
 	if clicked then
 		if hoveredObject then
 			selectedObject = hoveredObject.ref
@@ -1124,45 +1148,56 @@ function systemViewLayout:onUpdateWindowConstraints(w)
 	w.edgeButtons.size.x = 0 -- adaptive width
 end
 
-local function displaySystemViewUI()
+local systemViewContents = ui.makeFullScreenHandler("SystemView", displayOnScreenObjects)
+
+local function displaySystemViewUI(delta_t, refresh)
 	if not systemView then onGameStart() end
+
+	if refresh then
+		leftSidebar:Refresh()
+		rightSidebar:Refresh()
+
+		if not leftSidebar.active and not infoView.active then
+			leftSidebar:MakeActive(infoView)
+		end
+	end
 
 	if not ui.shouldDrawUI() then return end
 
 	player = Game.player
-	if Game.CurrentView() == "SystemView" then
-		if ui.isKeyReleased(ui.keys.tab) then
-			systemViewLayout.enabled = not systemViewLayout.enabled
-		end
 
-		plannerView.disabled = systemView:GetDisplayMode() ~= "Orrery"
-		plannerView.icon = plannerView.disabled and icons.square_dashed or icons.semi_major_axis
+	if ui.isKeyReleased(ui.keys.tab) then
+		systemViewLayout.enabled = not systemViewLayout.enabled
+	end
 
-		systemViewLayout:display()
-		if systemViewLayout.enabled then
-			ui.withStyleColors({ WindowBg = colors.transparent }, function()
-				leftSidebar:Draw()
-				rightSidebar:Draw()
-			end)
-		end
+	plannerView.disabled = systemView:GetDisplayMode() ~= "Orrery"
+	plannerView.icon = plannerView.disabled and icons.square_dashed or icons.semi_major_axis
 
-		displayOnScreenObjects()
+	systemViewLayout:display()
+	if systemViewLayout.enabled then
+		ui.withStyleColors({ WindowBg = colors.transparent }, function()
+			leftSidebar:Draw()
+			rightSidebar:Draw()
+		end)
+	end
 
-		if ui.escapeKeyReleased() then
-			Game.SetView("SectorView")
-		end
+	systemViewContents()
 
-		if ui.ctrlHeld() and ui.isKeyReleased(ui.keys.delete) then
-			package.reimport 'pigui.modules.system-overview-window'
-			systemEconView = package.reimport('pigui.modules.system-econ-view').New()
-			package.reimport()
-		end
+	if ui.escapeKeyReleased() then
+		Game.SetView("SectorView")
+	end
+
+	if ui.ctrlHeld() and ui.isKeyReleased(ui.keys.delete) then
+		package.reimport 'pigui.libs.sidebar'
+		package.reimport 'pigui.modules.system-overview-window'
+		systemEconView = package.reimport('pigui.modules.system-econ-view').New()
+		package.reimport()
 	end
 end
 
 Event.Register("onGameStart", onGameStart)
 Event.Register("onGameEnd", onGameEnd)
 Event.Register("onEnterSystem", onEnterSystem)
-ui.registerHandler("SystemView", ui.makeFullScreenHandler("SystemView", displaySystemViewUI))
+ui.registerHandler("SystemView", displaySystemViewUI)
 
 return {}

@@ -18,7 +18,7 @@
 #include "WorldView.h"
 #include "lua/LuaEvent.h"
 #include "lua/LuaObject.h"
-#include "lua/LuaTable.h"
+#include "pigui/LuaPiGui.h"
 #include "ship/PlayerShipController.h"
 #include "ship/ShipController.h"
 #include "sound/Sound.h"
@@ -33,12 +33,20 @@ Player::Player(const ShipType::Id &shipId) :
 	SetController(new PlayerShipController());
 	InitCockpit();
 	m_atmosAccel = vector3d(0.0f, 0.0f, 0.0f);
+
+	static_cast<PlayerShipController *>(m_controller)->onChangeTarget.connect([=](Body *target) {
+		LuaEvent::Queue(PiGui::GetEventQueue(), "onPlayerTargetChanged", target);
+	});
 }
 
 Player::Player(const Json &jsonObj, Space *space) :
 	Ship(jsonObj, space)
 {
 	InitCockpit();
+
+	static_cast<PlayerShipController *>(m_controller)->onChangeTarget.connect([=](Body *target) {
+		LuaEvent::Queue(PiGui::GetEventQueue(), "onPlayerTargetChanged", target);
+	});
 }
 
 void Player::SetShipType(const ShipType::Id &shipId)
@@ -86,7 +94,7 @@ bool Player::DoDamage(float kgDamage)
 
 	// Don't fire audio on EVERY iteration (aka every 16ms, or 60fps), only when exceeds a value randomly
 	const float dam = kgDamage * 0.01f;
-	if (Pi::rng.Double() < dam) {
+	if (Pi::rng.Double() < dam && m_lastDamageSound > k_damageSoundInterval) {
 		if (!IsDead() && (GetPercentHull() < 25.0f)) {
 			Sound::BodyMakeNoise(this, "warning", .5f);
 		}
@@ -94,6 +102,8 @@ bool Player::DoDamage(float kgDamage)
 			Sound::BodyMakeNoise(this, "Hull_hit_Small", 1.0f);
 		else
 			Sound::BodyMakeNoise(this, "Hull_Hit_Medium", 1.0f);
+
+		m_lastDamageSound = 0.f;
 	}
 	return r;
 }

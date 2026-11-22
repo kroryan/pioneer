@@ -14,6 +14,7 @@
 #include "NavLights.h"
 #include "Pi.h"
 #include "Planet.h"
+#include "galaxy/SystemBody.h"
 #include "Player.h" // <-- Here only for 1 occurrence of "Pi::player" in Ship::Explode
 #include "Sensors.h"
 #include "Sfx.h"
@@ -23,15 +24,28 @@
 #include "SpaceStation.h"
 #include "WorldView.h"
 #include "collider/CollisionContact.h"
+#include "graphics/RenderState.h"
+#include "graphics/Renderer.h"
 #include "graphics/TextureBuilder.h"
 #include "graphics/Types.h"
+#include "graphics/VertexBuffer.h"
 #include "lua/LuaEvent.h"
 #include "lua/LuaObject.h"
 #include "scenegraph/Animation.h"
+#include "scenegraph/MatrixTransform.h"
+#include "scenegraph/Model.h"
 #include "scenegraph/Tag.h"
+#include "ThrusterExhaust.h"
 #include "scenegraph/CollisionGeometry.h"
+#include "scenegraph/NodeVisitor.h"
+#include "scenegraph/StaticGeometry.h"
 #include "ship/GunManager.h"
 #include "ship/PlayerShipController.h"
+
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <vector>
 
 static const float TONS_HULL_PER_SHIELD = 10.f;
 const float Ship::DEFAULT_SHIELD_COOLDOWN_TIME = 1.0f;
@@ -40,7 +54,110 @@ const double Ship::DEFAULT_LIFT_TO_DRAG_RATIO = 0.001;
 namespace {
 	static constexpr size_t s_heatingNormalParam = "heatingNormal"_hash;
 	static constexpr size_t s_heatGradientTexParam = "heatGradient"_hash;
+
+	static constexpr size_t s_reentryFlightParam = "ReentryFlight"_hash;
+	static constexpr size_t s_reentryTimeParam = "ReentryTime"_hash;
+
+	static RefCountedPtr<Graphics::Material> s_reentryGlowTemplate;
+
+	bool TryGetLandingPadDustOverride(const Ship *ship, double *outGroundRadius, Color *outDustTint)
+	{
+		PROFILE_SCOPED()
+
+		if (!ship || !outGroundRadius || !outDustTint || !Pi::game) return false;
+		Space *space = Pi::game->GetSpace();
+		if (!space) return false;
+
+		// Keep this local query cheap - we only need stations close enough to plausibly be beneath the ship.
+		constexpr double PAD_QUERY_RADIUS = 2000.0;
+		constexpr double PAD_MAX_VERTICAL_ABOVE_M = 350.0;
+		constexpr double PAD_MIN_VERTICAL_BELOW_M = -20.0;
+		constexpr double PAD_BASE_LATERAL_RADIUS_M = 120.0;
+
+		const Space::BodyNearList nearby = space->GetBodiesMaybeNear(ship, PAD_QUERY_RADIUS);
+		bool foundPad = false;
+		double bestPadDistSq = std::numeric_limits<double>::max();
+		double bestPadRadius = 0.0;
+		for (Body *body : nearby) {
+			if (!body || !body->IsType(ObjectType::SPACESTATION)) continue;
+			SpaceStation *station = static_cast<SpaceStation *>(body);
+			if (!station->IsGroundStation()) continue;
+			if (station->GetFrame() != ship->GetFrame()) continue;
+
+			const SpaceStationType *stationType = station->GetStationType();
+			if (!stationType) continue;
+
+			for (Uint32 bay = 0; bay < stationType->NumDockingPorts(); ++bay) {
+				const matrix4x4f bayDocked = stationType->GetStageTransform(int(bay), DockStage::DOCKED);
+				const vector3d bayLocal = vector3d(bayDocked.GetTranslate());
+				const vector3d bayWorld = station->GetPosition() + station->GetOrient() * bayLocal;
+				const vector3d padUp = bayWorld.NormalizedSafe();
+
+				const vector3d shipRel = ship->GetPosition() - bayWorld;
+				const double vertical = shipRel.Dot(padUp);
+				if (vertical < PAD_MIN_VERTICAL_BELOW_M || vertical > PAD_MAX_VERTICAL_ABOVE_M)
+					continue;
+
+				const vector3d lateralVec = shipRel - padUp * vertical;
+				double padLateralRadius = PAD_BASE_LATERAL_RADIUS_M;
+				if (const SpaceStationType::SPort *port = stationType->FindPortByBay(int(bay)))
+					padLateralRadius = std::max(padLateralRadius, 0.5 * double(port->maxShipSize));
+
+				const double lateralDistSq = lateralVec.LengthSqr();
+				if (lateralDistSq > padLateralRadius * padLateralRadius)
+					continue;
+
+				if (lateralDistSq < bestPadDistSq) {
+					bestPadDistSq = lateralDistSq;
+					bestPadRadius = bayWorld.Length();
+					foundPad = true;
+				}
+			}
+		}
+		if (!foundPad) return false;
+
+		*outGroundRadius = bestPadRadius;
+		// Concrete or landing pad dust colour. We make this lower alpha because it's less intense than a dusty planet surface.
+		*outDustTint = Color(128, 128, 128, 63);
+		return true;
+	}
+
+	static matrix3x3d OrientWithSurfaceUp(const vector3d &up, const vector3d &forwardHint)
+	{
+		// Match legacy landing: right = up x forward, Z = right x up preserves heading on the surface.
+		vector3d right = up.Cross(forwardHint).NormalizedSafe();
+		if (right.LengthSqr() < 1e-12) {
+			right = up.Cross(vector3d(0, 0, 1)).NormalizedSafe();
+			if (right.LengthSqr() < 1e-12)
+				right = up.Cross(vector3d(1, 0, 0)).Normalized();
+		}
+		return matrix3x3d::FromVectors(right, up);
+	}
+
+	static void SnapLandedShipToSurface(Ship *ship, const TerrainBody *body, const vector3d &radial, const vector3d &forwardHint)
+	{
+		const vector3d up = body->GetTerrainSurfaceNormal(radial, ship->GetRoughFootprintDiameter());
+		const vector3d surfacePoint = body->GetTerrainSurfacePoint(radial);
+		ship->SetPosition(surfacePoint - up * ship->GetAabb().min.y);
+		ship->SetOrient(OrientWithSurfaceUp(up, forwardHint));
+	}
 } // namespace
+
+struct ReentryGlowSetupVisitor : SceneGraph::NodeVisitor {
+	Ship *ship;
+	Graphics::Renderer *renderer;
+	ReentryGlowSetupVisitor(Ship *s, Graphics::Renderer *r) :
+		ship(s), renderer(r) {}
+	void ApplyStaticGeometry(SceneGraph::StaticGeometry &sg) override
+	{
+		ship->m_reentryGlowGeoms.push_back(&sg);
+		sg.SetNodeMask(SceneGraph::NODE_TRANSPARENT);
+		for (Uint32 i = 0; i < sg.GetNumMeshes(); ++i) {
+			SceneGraph::StaticGeometry::Mesh &mesh = sg.GetMeshAt(i);
+			mesh.material = ship->FindOrCreateReentryGlowMats(renderer, mesh.meshObject->GetFormat())->frontShellPass;
+		}
+	}
+};
 
 Ship::Ship(const ShipType::Id &shipId) :
 	DynamicBody(),
@@ -66,6 +183,7 @@ Ship::Ship(const ShipType::Id &shipId) :
 	m_shipNear = false;
 	m_shipFiring = false;
 	m_missileDetected = false;
+	m_lastDamageSound = 0.f;
 
 	m_testLanded = false;
 	m_launchLockTimeout = 0;
@@ -145,6 +263,7 @@ Ship::Ship(const Json &jsonObj, Space *space) :
 		m_shipNear = false;		   // alertstate check cache value
 		m_shipFiring = false;	   // alertstate check cache value
 		m_missileDetected = false; // alertstate check cache value
+		m_lastDamageSound = 0.f;
 
 		m_alertState = shipObj["alert_state"];
 		m_lastFiringAlert = shipObj["last_firing_alert"];
@@ -252,6 +371,8 @@ void Ship::Init()
 	}
 
 	InitMaterials();
+
+	m_exhaustSpawner.RefreshMounts(GetModel());
 }
 
 void Ship::PostLoadFixup(Space *space)
@@ -453,7 +574,6 @@ vector3d Ship::CalcAtmoTorque() const
 bool Ship::OnDamage(Body *attacker, float kgDamage, const CollisionContact &contactData)
 {
 	if (m_invulnerable) {
-		Sound::BodyMakeNoise(this, "Hull_hit_Small", 0.5f);
 		return true;
 	}
 
@@ -491,11 +611,13 @@ bool Ship::OnDamage(Body *attacker, float kgDamage, const CollisionContact &cont
 			if (Pi::rng.Double() < kgDamage)
 				SfxManager::Add(this, TYPE_DAMAGE);
 
-			if (dam > float(GetShipType()->hullMass / 1000.)) {
+			if (dam > float(GetShipType()->hullMass / 1000.) && m_lastDamageSound > k_damageSoundInterval) {
 				if (dam < 0.01 * float(GetShipType()->hullMass))
 					Sound::BodyMakeNoise(this, "Hull_hit_Small", 1.0f);
 				else
 					Sound::BodyMakeNoise(this, "Hull_Hit_Medium", 1.0f);
+
+				m_lastDamageSound = 0.f;
 			}
 		}
 	}
@@ -533,6 +655,19 @@ bool Ship::OnCollision(Body *b, Uint32 flags, double relVel)
 			return false;
 		else {
 			if (GetVelocity().Length() < MAX_LANDING_SPEED) {
+				if (m_launchLockTimeout > 0.0f)
+					return false;
+				// When starport landing pads sit just above the terrain surface, a landing ship
+				// will often collide with the terrain before the pad. So if the ship has landing
+				// clearance and is on its pad, start docking instead of a rough terrain landing.
+				constexpr double PAD_QUERY_RADIUS = 2000.0;
+				for (Body *body : Pi::game->GetSpace()->GetBodiesMaybeNear(this, PAD_QUERY_RADIUS)) {
+					if (!body->IsType(ObjectType::SPACESTATION)) continue;
+					SpaceStation *station = static_cast<SpaceStation *>(body);
+					if (station->GetFrame() != GetFrame()) continue;
+					if (station->TryDockShipFromTerrain(this))
+						return false;
+				}
 				m_testLanded = true;
 				return true;
 			}
@@ -843,8 +978,6 @@ void Ship::Blastoff()
 {
 	if (m_flightState != LANDED) return;
 
-	vector3d up = GetPosition().Normalized();
-
 	Frame *f = Frame::GetFrame(GetFrame());
 
 	assert(f->GetBody()->IsType(ObjectType::PLANET));
@@ -857,12 +990,15 @@ void Ship::Blastoff()
 		auto p = static_cast<Player*>(this);
 		p->DoFixspeedTakeoff();
 	} else {
-		const double planetRadius = 2.0 + static_cast<Planet *>(f->GetBody())->GetTerrainHeight(up);
+		const auto *planet = static_cast<const Planet *>(f->GetBody());
+		const vector3d radial = GetPosition().NormalizedSafe();
+		const vector3d up = planet->GetTerrainSurfaceNormal(radial, GetRoughFootprintDiameter());
+		const vector3d surfacePoint = planet->GetTerrainSurfacePoint(radial);
 		SetVelocity(vector3d::Zero);
 		SetAngVelocity(vector3d::Zero);
 		SetFlightState(FLYING);
 
-		SetPosition(up * planetRadius - GetAabb().min.y * up);
+		SetPosition(surfacePoint - up * GetAabb().min.y + up * 2.0);
 		SetThrusterState(1, 1.0); // thrust upwards
 	}
 
@@ -880,18 +1016,14 @@ void Ship::TestLanded()
 
 	if (f->GetBody()->IsType(ObjectType::PLANET)) {
 		double speed = GetVelocity().Length();
-		vector3d up = GetPosition().Normalized();
-		const double planetRadius = static_cast<Planet *>(f->GetBody())->GetTerrainHeight(up);
+		const auto *planet = static_cast<const Planet *>(f->GetBody());
+		const vector3d radial = GetPosition().NormalizedSafe();
+		const vector3d surfaceNormal = planet->GetTerrainSurfaceNormal(radial, GetRoughFootprintDiameter());
 
 		if (speed < MAX_LANDING_SPEED) {
 			// check player is sortof sensibly oriented for landing
-			if (GetOrient().VectorY().Dot(up) > 0.99) {
-				// position at zero altitude
-				SetPosition(up * (planetRadius - GetAabb().min.y));
-
-				// position facing in roughly the same direction
-				vector3d right = up.Cross(GetOrient().VectorZ()).Normalized();
-				SetOrient(matrix3x3d::FromVectors(right, up));
+			if (GetOrient().VectorY().Dot(surfaceNormal) > 0.95) {
+				SnapLandedShipToSurface(this, planet, radial, GetOrient().VectorZ());
 
 				SetVelocity(vector3d::Zero);
 				SetAngVelocity(vector3d::Zero);
@@ -913,11 +1045,8 @@ void Ship::SetLandedOn(Planet *p, float latitude, float longitude)
 	Frame *f_non_rot = Frame::GetFrame(p->GetFrame());
 	SetFrame(f_non_rot->GetRotFrame());
 
-	vector3d up = vector3d(cos(latitude) * sin(longitude), sin(latitude), cos(latitude) * cos(longitude));
-	const double planetRadius = p->GetTerrainHeight(up);
-	SetPosition(up * (planetRadius - GetAabb().min.y));
-	vector3d right = up.Cross(vector3d(0, 0, 1)).Normalized();
-	SetOrient(matrix3x3d::FromVectors(right, up));
+	const vector3d radial = vector3d(cos(latitude) * sin(longitude), sin(latitude), cos(latitude) * cos(longitude));
+	SnapLandedShipToSurface(this, p, radial, vector3d(0, 0, 1));
 	SetVelocity(vector3d::Zero);
 	SetAngVelocity(vector3d::Zero);
 	ClearThrusterState();
@@ -928,12 +1057,18 @@ void Ship::SetLandedOn(Planet *p, float latitude, float longitude)
 
 void Ship::SetFrame(FrameId fId)
 {
+	if (fId != GetFrame()) {
+		m_exhaustSpawner.ClearChannelState();
+	}
 	DynamicBody::SetFrame(fId);
 }
 
 void Ship::TimeStepUpdate(const float timeStep)
 {
 	PROFILE_SCOPED()
+
+	m_lastDamageSound += timeStep;
+
 	// If docked, station is responsible for updating position/orient of ship
 	// but we call this crap anyway and hope it doesn't do anything bad
 
@@ -1198,6 +1333,8 @@ void Ship::StaticUpdate(const float timeStep)
 				float damage = float(pressure - m_type->atmosphericPressureLimit);
 				DoDamage(damage);
 			}
+
+			SpawnThrusterExhaustParticles(timeStep);
 		}
 	}
 
@@ -1361,6 +1498,66 @@ void Ship::StaticUpdate(const float timeStep)
 	}
 }
 
+void Ship::SpawnThrusterExhaustParticles(float timeStep)
+{
+	if (IsDead()) return;
+	if (m_flightState != FLYING) return;
+
+	Frame *frame = Frame::GetFrame(GetFrame());
+	Body *astro = frame->GetBody();
+	if (!astro || !astro->IsType(ObjectType::PLANET)) return;
+
+	Planet *p = static_cast<Planet *>(astro);
+	const double dist = GetPosition().Length();
+	double pressureAtDist, density;
+	p->GetAtmosphericState(dist, &pressureAtDist, &density);
+	(void)pressureAtDist;
+
+	const SystemBody *sbody = p->GetSystemBody();
+	// Terrestrial worlds / asteroids / moons with terrain (exclude gas giants and non-planet types).
+	const bool landableNaturalWorld = sbody && (sbody->GetSuperType() == SystemBodyType::SUPERTYPE_ROCKY_PLANET);
+	const double altitudeM = sbody ? (dist - sbody->GetRadius()) : 0.0;
+	const double plumeAltitudeCapM = sbody ? std::max(sbody->GetAtmRadius(), 1000.0) : 0.0;
+	double groundRadiusAtShip = landableNaturalWorld ? p->GetTerrainHeight(GetPosition().NormalizedSafe()) : 0.0;
+	Color dustTint = landableNaturalWorld ? sbody->CalcSurfaceDustColor() : Color(128, 128, 128, 255);
+	(void)TryGetLandingPadDustOverride(this, &groundRadiusAtShip, &dustTint);
+
+	// Slight per-spawn dust colour variation so dust clouds are less uniform.
+	const float shade = float(Pi::rng.Double(0.95, 1.05));
+	dustTint.r = Uint8(Clamp(int(dustTint.r * shade), 0, 255));
+	dustTint.g = Uint8(Clamp(int(dustTint.g * shade), 0, 255));
+	dustTint.b = Uint8(Clamp(int(dustTint.b * shade), 0, 255));
+
+	// Exhaust plumes shown if the ship is within the atmosphere height, or within 1 km of the surface for ground-hugging / surface dust.
+	const bool lowAltitudePlumes = landableNaturalWorld && ((altitudeM <= plumeAltitudeCapM) || (dist <= groundRadiusAtShip + 1000.0));
+
+	// Atmospheric exhaust plume - spawn only for ships close enough to the player.
+	constexpr double EXHAUST_MAX_PLAYER_DISTANCE_SQR = SfxParams::EXHAUST_MAX_PLAYER_DISTANCE * SfxParams::EXHAUST_MAX_PLAYER_DISTANCE;
+	const bool spawnExhaustForShip = !Pi::player || this == Pi::player || (GetPositionRelTo(Pi::player).LengthSqr() <= EXHAUST_MAX_PLAYER_DISTANCE_SQR);
+
+	if (!spawnExhaustForShip || !lowAltitudePlumes) {
+		// We're not adding any exhaust this tick. Clear the thruster exhaust channels so there is no stale state.
+		m_exhaustSpawner.ClearChannelState();
+		return;
+	}
+
+	// Simple ambient wind model: fixed-speed direction tangent to local surface.
+	const vector3f localUp = vector3f(GetPosition().NormalizedSafe());
+	vector3f windDir = vector3f(0.f, 1.f, 0.f).Cross(localUp);
+	if (windDir.LengthSqr() < 1e-8f) windDir = vector3f(1.f, 0.f, 0.f).Cross(localUp);
+	windDir = windDir.NormalizedSafe();
+	const vector3f windVel = windDir * (SfxParams::EXHAUST_WIND_SPEED * float(Clamp(density, 0.0, 1.0)));
+
+	ExhaustEnvironment env;
+	env.density = density;
+	env.opacityAtmosphereFactor = float(density / 1.225);
+	env.windVel = windVel;
+	env.groundRadius = groundRadiusAtShip;
+	env.dustTint = dustTint;
+
+	m_exhaustSpawner.Spawn(this, m_propulsion, timeStep, env, SfxParams::EXHAUST_PARTICLES_PER_SHIP_PER_SEC);
+}
+
 void Ship::NotifyRemoved(const Body *const removedBody)
 {
 	if (m_curAICmd) m_curAICmd->OnDeleted(removedBody);
@@ -1464,6 +1661,36 @@ void Ship::Render(Graphics::Renderer *renderer, const Camera *camera, const vect
 
 	if (m_shieldModel && shieldsVisible)
 		m_shieldModel->Render(matrix4x4f(viewTransform * GetInterpMatrix()));
+
+	// Atmospheric reentry / high-speed glow (shield ellipsoid, alpha-blended; two-pass sort)
+	vector3d vel = GetVelocity();
+	if (m_reentryGlowModel && (m_flightState == FLYING) && (vel.LengthSqr() > 1.0)) {
+		const float glow = CalcReentryGlowIntensity();
+		const Uint32 glowMask = (glow > 0.02f) ? SceneGraph::NODE_TRANSPARENT : 0u;
+		for (SceneGraph::StaticGeometry *geom : m_reentryGlowGeoms)
+			geom->SetNodeMask(glowMask);
+		if (glow > 0.02f) {
+			vector3f flight = matrix3x3f(viewTransform.GetOrient()).Inverse().Transpose() * vector3f(vel);
+			flight = flight.Normalized();
+			// Use Game::GetTime() as the streak seed to achieve a highly variable random streak distribution effect.
+			// If the game is paused we don't draw streaks at all - pass in -1 to signify this.
+			const double simT = Pi::game->GetTime();
+			const float reentryPhaseT = Pi::game->IsPaused() ? -1.f	: float(std::fmod(simT, 2048.0));
+			for (ReentryGlowMatPair &mats : m_reentryGlowMaterials) {
+				mats.backShellPass->SetPushConstant(s_reentryFlightParam, flight, glow);
+				mats.backShellPass->SetPushConstant(s_reentryTimeParam, reentryPhaseT);
+				mats.frontShellPass->SetPushConstant(s_reentryFlightParam, flight, glow);
+				mats.frontShellPass->SetPushConstant(s_reentryTimeParam, reentryPhaseT);
+			}
+			m_reentryGlowModel->SetRenderTime(simT);
+			const matrix4x4f glowMtx(matrix4x4f(viewTransform * GetInterpMatrix()));
+			// Convex translucent shell: draw back faces first, then front
+			BindReentryGlowMaterials(true);
+			m_reentryGlowModel->Render(glowMtx);
+			BindReentryGlowMaterials(false);
+			m_reentryGlowModel->Render(glowMtx);
+		}
+	}
 
 	renderer->GetStats().AddToStatCount(Graphics::Stats::STAT_SHIPS, 1);
 
@@ -1593,6 +1820,84 @@ void Ship::OnEnterSystem()
 	m_hyperspaceCloud = 0;
 }
 
+void Ship::BindReentryGlowMaterials(bool backShellPass)
+{
+	for (SceneGraph::StaticGeometry *geom : m_reentryGlowGeoms) {
+		for (Uint32 i = 0; i < geom->GetNumMeshes(); ++i) {
+			SceneGraph::StaticGeometry::Mesh &mesh = geom->GetMeshAt(i);
+			const uint64_t h = mesh.meshObject->GetFormat().Hash();
+			for (ReentryGlowMatPair &mats : m_reentryGlowMaterials) {
+				if (mats.formatHash != h)
+					continue;
+				mesh.material = backShellPass ? mats.backShellPass : mats.frontShellPass;
+				break;
+			}
+		}
+	}
+}
+
+Ship::ReentryGlowMatPair *Ship::FindOrCreateReentryGlowMats(Graphics::Renderer *r, const Graphics::VertexFormatDesc &vfmt)
+{
+	// We draw the shield re-entry glow in two passes - first all the back faces, then the front ones. If we didn't do this
+	// then the faces would be drawn in mesh order and from some angles the rear of the shield bubble would be drawn over
+	// the top of the front and look wrong.
+
+	if (!s_reentryGlowTemplate.Valid()) {
+		Graphics::MaterialDescriptor desc;
+		desc.textures = 0;
+		desc.lighting = false;
+		Graphics::RenderStateDesc rsd;
+		rsd.blendMode = Graphics::BLEND_ALPHA;
+		rsd.depthWrite = false;
+		rsd.depthTest = true;
+		rsd.cullMode = Graphics::CULL_BACK;
+		const auto vtxFormat = Graphics::VertexFormatDesc::FromAttribSet(
+			Graphics::ATTRIB_POSITION | Graphics::ATTRIB_NORMAL | Graphics::ATTRIB_UV0 | Graphics::ATTRIB_TANGENT);
+		s_reentryGlowTemplate.Reset(r->CreateMaterial("reentry_glow", desc, rsd, vtxFormat));
+	}
+
+	const uint64_t h = vfmt.Hash();
+	for (ReentryGlowMatPair &mats : m_reentryGlowMaterials) {
+		if (mats.formatHash == h)
+			return &mats;
+	}
+	Graphics::Material *tpl = s_reentryGlowTemplate.Get();
+	const Graphics::RenderStateDesc rsdBase = r->GetMaterialRenderState(tpl);
+
+	Graphics::RenderStateDesc rsdBack = rsdBase;
+	rsdBack.cullMode = Graphics::CULL_FRONT;
+	RefCountedPtr<Graphics::Material> backMat(r->CloneMaterial(tpl, tpl->GetDescriptor(), rsdBack, vfmt));
+
+	Graphics::RenderStateDesc rsdFront = rsdBase;
+	rsdFront.cullMode = Graphics::CULL_BACK;
+	RefCountedPtr<Graphics::Material> frontMat(r->CloneMaterial(tpl, tpl->GetDescriptor(), rsdFront, vfmt));
+
+	ReentryGlowMatPair pair;
+	pair.formatHash = h;
+	pair.backShellPass = backMat;
+	pair.frontShellPass = frontMat;
+	m_reentryGlowMaterials.push_back(std::move(pair));
+	return &m_reentryGlowMaterials.back();
+}
+
+float Ship::CalcReentryGlowIntensity() const
+{
+	if (m_flightState != FLYING)
+		return 0.0f;
+	double pressure, density;
+	GetCurrentAtmosphericState(pressure, density);
+	if (density <= 0.01)
+		return 0.0f;
+
+	// Thinner atmosphere translates to a higher required speed before re-entry glow is seen
+	const double vel = GetVelocity().Length();
+	const double vel_adj = vel * std::pow(density, 0.5);
+
+	if (vel_adj < SfxParams::REENTRY_GLOW_MIN_SPEED) return 0.0f;
+	if (vel_adj > SfxParams::REENTRY_GLOW_MAX_SPEED) return 1.0f;
+	return (vel_adj - SfxParams::REENTRY_GLOW_MIN_SPEED) / (SfxParams::REENTRY_GLOW_MAX_SPEED - SfxParams::REENTRY_GLOW_MIN_SPEED);
+}
+
 void Ship::SetupShields()
 {
 	SceneGraph::Model *sm = Pi::FindModel(m_type->shieldName, false);
@@ -1600,9 +1905,17 @@ void Ship::SetupShields()
 	if (sm) {
 		m_shieldModel.reset(sm->MakeInstance());
 		m_shields->ApplyModel(m_shieldModel.get());
+		m_reentryGlowModel.reset(sm->MakeInstance());
+		m_reentryGlowMaterials.clear();
+		m_reentryGlowGeoms.clear();
+		ReentryGlowSetupVisitor visitor(this, m_reentryGlowModel->GetRenderer());
+		m_reentryGlowModel->GetRoot()->Accept(visitor);
 	} else {
 		m_shieldModel.reset();
 		m_shields->ClearModel();
+		m_reentryGlowModel.reset();
+		m_reentryGlowMaterials.clear();
+		m_reentryGlowGeoms.clear();
 	}
 }
 

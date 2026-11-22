@@ -1,3 +1,50 @@
+October
+  * Fixes
+    * Clear sensor contacts before hyperspace to avoid HUD trail crash (#6446)
+    * Fix flickering illumination: Switch from float to double for eclipse occlusion calcs (#6438)
+    * Fix flickering numbers by limiting TWR mass display to 2 DP (#6440)
+    * Fix error message in the model viewer / Correct EndMenu to EndPopup (#6457)
+
+  * Internal
+    * Move getNumberOfFlavours() to MissionUtils (#6448)
+    * Changed `primary_1000` to `primary_950` for material Compliance (#6452)
+
+September
+  * Fixes
+    * Fix for radar not working with non-station target (#6434)
+
+Pioneer 2026-09-07 Release
+  * New Features
+    * Add thrust-to-weight ratio display to flight UI and station screen (#6382)
+    * Shield heating effect when flying at high speed in atmosphere (#6408)
+    * Terrain lighting now uses the Rayleigh-Mie atmospheric model (#6285)
+    * System view frames the entire system at default zoom level (#6422)
+
+  * Fixes
+    * Donation advertisements display amount of gained reputation and have a more even curve. (#6197)
+    * Revert "Improve calculations in AIMatchVel (AIChangeVelBy)" (#6296)
+    * Fix ImGui nag messages related to extending parent boundaries (#6422)
+    * Automatically open the System View body info window when switching to it (#6422)
+    * Fix debug-mode invulnerable ships playing damage sounds (#6422)
+    * Fix system view showing explored systems as unexplored (#6422)
+
+August
+  * New Features
+    * Improve flight reticle display, add orbit apoapsis/periapsis information (#6397)
+    * Thruster exhaust plumes (#6346)
+    * Add docking aid to flight reticle (#6373)
+    * Improved missile exhaust plumes and trails (#6411)
+
+  * Fixes
+    * Adding missing DSMiner engines, adjusting plume sizes (#6403)
+    * Crew Contracts: Do not show the $1 button twice (#6416)
+    * Fix nil lastStockUpdate value, crash when exiting hyperspace (#6417)
+    * Improve calculations in AIMatchVel (AIChangeVelBy) (#6296)
+    * Decreasing radar minimum range to 50m (#6419)
+
+  * Internal
+    * Null audio backend for running headless unit tests (#6413)
+
 July
   * New Features
     * Autopilot can now fly to the vicinity of a landed ship (#6379)
@@ -6,6 +53,7 @@ July
     * Make probability of lava depend on volcanicity (#6390)
     * Implement Circular Thrust Indicator (#6387)
     * Show percent translation complete for language options (#6370)
+    * Add URL to translation wiki from language option menu (#6399)
 
   * Fixes
     * Fix for HUD trails not displaying in rotating frames (#6384)
@@ -14,11 +62,13 @@ July
     * Fix for HudTrail and missile targetting crashes (#6394)
     * Search & Rescue mission checks cargo hold for additional fuel (#6377)
     * Fix skybox background glitch - Scale down the skybox in SystemMap (#6398)
+    * Fix bug that made persistent NPC names (lobby, police, etc.) non-persistent (#6401)
 
   * Internal
     * Fix return-value warning in PiGuiRenderer.cpp (#6374)
     * Add text shadow capability (#6388)
     * OpenAL Soft contribution added in Authors and About dialog (#6396)
+    * Remove redundant japanese languages ja-Hira and ja_JP (#6405)
 
 June
   * New Features
@@ -34,6 +84,7 @@ June
     * Round off new commodity stock on news event (#6365)
 
   * Internal
+    * Upgrade Dear Imgui to 1.92.8 (#6356)
     * Update CMake and CI build files (#6359)
     * Remove unused "set as target" strings (#6363)
     * clang-format: Add SpaceBeforeCpp11BracedList: true (#6362)

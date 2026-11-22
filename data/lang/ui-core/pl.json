@@ -33,7 +33,7 @@
   },
   "ALL_UP_WEIGHT": {
     "description": "",
-    "message": "Masa całkowita"
+    "message": "Obecna waga całkowita"
   },
   "AMOUNT": {
     "description": "",
@@ -69,7 +69,7 @@
   },
   "AUDIO_BACKEND": {
     "description": "Audio backend label in settings menu",
-    "message": "Audio Backend"
+    "message": "Audio backend"
   },
   "AUTOMATED_MESSAGE": {
     "description": "For comm messages from bots",
@@ -97,11 +97,11 @@
   },
   "BINAURAL_RENDERING": {
     "description": "Label of the binaural rendering checkbox in the audio settings menu",
-    "message": "Binaural Rendering"
+    "message": "Rendering binauralny"
   },
   "BINAURAL_RENDERING_DESC": {
     "description": "Tooltip of the binaural rendering checkbox in the audio settings menu",
-    "message": "When enabled, HRTF filters are applied to the audio output. Works best with headphones."
+    "message": "Gdy włączone, do wyjścia audio stosuje się filtry HRTF. Najlepiej działa ze słuchawkami."
   },
   "BODY_IN_ROUTE": {
     "description": "Label indicating a star is part of a planned hyperjump route",
@@ -137,7 +137,7 @@
   },
   "CABINS": {
     "description": "For passengers",
-    "message": "Kabiny"
+    "message": "Koje"
   },
   "CABIN_FREE": {
     "description": "Free capacity for passengers",
@@ -365,7 +365,7 @@
   },
   "COULD_NOT_FIND_SYSTEM_BODY_FOR_FRAME": {
     "description": "Message when restoring savegame",
-    "message": "Could not find system body for frame"
+    "message": "Nie można znaleźć ciała systemowego dla układu odniesienia"
   },
   "COULD_NOT_LOAD_GAME": {
     "description": "Label indicating a specific file could not be loaded",
@@ -377,7 +377,7 @@
   },
   "COULD_NOT_READ_THE_SAVE_VERSION": {
     "description": "Message when restoring savegame",
-    "message": "Could not read the save version"
+    "message": "Nie można wczytać zapisanej wersji"
   },
   "COULD_NOT_SAVE_GAME": {
     "description": "Label indicating a specific file could not be saved",
@@ -421,7 +421,7 @@
   },
   "CURRENT_SAVEGAME_VERSION": {
     "description": "Message when restoring savegame",
-    "message": "Current savegame version: %s"
+    "message": "Obecna zapisana wersja gry: %s"
   },
   "CURRENT_SHIP": {
     "description": "For tooltip comparing current ship specs to one in the shipyard",
@@ -541,7 +541,7 @@
   },
   "DOCKED_TO_A_BODY_THAT_IS_NOT_A_STATION": {
     "description": "Message when restoring savegame",
-    "message": "Docked to a body that is not a station"
+    "message": "Zadokowano do ciała, które nie jest stacją"
   },
   "DOCK_AT_CURRENT_TARGET": {
     "description": "",
@@ -641,11 +641,15 @@
   },
   "EQUIPMENT_CAPACITY": {
     "description": "The equipment capacity of a ship",
-    "message": "Pojemność ekwipunku"
+    "message": "Miejsce na wyposażenie"
   },
   "EQUIPMENT_MARKET": {
     "description": "",
     "message": "Sklep z wyposażeniem"
+  },
+  "EQUIPMENT_USED": {
+    "description": "",
+    "message": "Użyte miejsce na wyposażenie"
   },
   "EQUIPPED": {
     "description": "",
@@ -657,7 +661,7 @@
   },
   "ERROR_APPLYING_PATCH": {
     "description": "Message when restoring savegame",
-    "message": "Error applying patch"
+    "message": "Błąd podczas nakładania łaty"
   },
   "ERROR_LANDING_GEAR_DOWN": {
     "description": "",
@@ -753,7 +757,7 @@
   },
   "FILE_SAVEGAME_VERSION": {
     "description": "Message when restoring savegame",
-    "message": "File savegame version: %s"
+    "message": "Wersja pliku zapisu gry: %s"
   },
   "FINAL_TARGET": {
     "description": "Hyperjump planner, referring to star system target",
@@ -1205,7 +1209,7 @@
   },
   "HUD_GRAVITY_INDICATOR": {
     "description": "Tooltip: describe what the gravity indicator shows",
-    "message": "Local gravity acceleration (scale: ship maximum acceleration)"
+    "message": "Lokalne przyspieszenie grawitacyjne (skala: maksymalne przyspieszenie statku)"
   },
   "HUD_HULL_STRENGTH": {
     "description": "Tooltip: Hull Strength.",
@@ -1270,6 +1274,14 @@
   "HUD_MASS": {
     "description": "Mass",
     "message": "Masa"
+  },
+  "HUD_ORBIT_APOAPSIS": {
+    "description": "Tooltip: Current orbital apoapsis.",
+    "message": "Current orbit apoapsis"
+  },
+  "HUD_ORBIT_PERIAPSIS": {
+    "description": "Tooltip: Current orbital apoapsis.",
+    "message": "Current orbit periapsis"
   },
   "HUD_RADAR_DISTANCE": {
     "description": "Tooltip: Current distance of the radar.",
@@ -1338,6 +1350,10 @@
   "HUD_WARNING_IMPACT_IMMINENT": {
     "description": "Alert tooltip",
     "message": "Bliskie zderzenie"
+  },
+  "HUD_WARNING_TWR_DESTINATION": {
+    "description": "TWR (Thrust to Weight Ratio) HUD warning",
+    "message": "TWR at destination is {value}"
   },
   "HULL_DOES_NOT_REQUIRE_REPAIR": {
     "description": "",
@@ -1475,6 +1491,10 @@
     "description": "Flight State",
     "message": "Skoki"
   },
+  "JUMP_REACHABLE": {
+    "description": "Tooltip indicating the jump listed in the route planner is possible under the current ship configuration.",
+    "message": "Jump is reachable"
+  },
   "KILLS": {
     "description": "",
     "message": "Pokonanych:"
@@ -1570,6 +1590,10 @@
   "LOCAL_ARM": {
     "description": "Arm of the Milky Way galaxy",
     "message": "Ramię Lokalne"
+  },
+  "LOCAL_GRAVITY": {
+    "description": "Gravity at the ship's current location, shown in the mass/TWR widget",
+    "message": "Local gravity"
   },
   "LOCATED_N_KM_FROM_THE_CENTRE_OF_NAME": {
     "description": "",
@@ -1843,6 +1867,10 @@
     "description": "",
     "message": "{alloy} - jest zbyt mało by rozpocząć naprawę."
   },
+  "NOT_ENOUGH_SPACE_FOR_EQUIPMENT": {
+    "description": "",
+    "message": "Not enough space to install this equipment"
+  },
   "NOT_SUPPORTED_ON_THIS_SHIP": {
     "description": "",
     "message": "{equipment} - nie można zainstalować w tym modelu statku"
@@ -1879,21 +1907,13 @@
     "description": "",
     "message": "{range} lat świetlnych ({maxRange} maks.)"
   },
-  "N_OCCUPIED_PASSENGER_CABINS": {
-    "description": "",
-    "message": "Zajęte kabiny pasażerskie: {quantity}"
-  },
   "N_SHIELD_GENERATORS": {
     "description": "",
     "message": "Genaratory Osłon: {quantity}"
   },
-  "N_UNOCCUPIED_PASSENGER_CABINS": {
-    "description": "",
-    "message": "Wolne kabiny pasażerskie: {quantity}"
-  },
   "OCCUPIED_PASSENGER_CABINS": {
     "description": "",
-    "message": "Zajęte kabiny pasażerskie"
+    "message": "Occupied passenger berths"
   },
   "OFF": {
     "description": "",
@@ -1985,7 +2005,7 @@
   },
   "PASSENGER_CABIN_CAPACITY": {
     "description": "Entry for ship info",
-    "message": "Pojemność kabiny pasażerskie"
+    "message": "Max passenger capacity"
   },
   "PASTE": {
     "description": "As for clipboard",
@@ -2727,6 +2747,30 @@
     "description": "",
     "message": "Wyłącz"
   },
+  "TWR": {
+    "description": "Short label for the current thrust-to-weight ratio readout on the flight HUD",
+    "message": "TWR"
+  },
+  "TWR_AT_SURFACE": {
+    "description": "TWR (Thrust to Weight Ratio) at planet surface",
+    "message": "TWR at surface"
+  },
+  "TWR_CURRENT": {
+    "description": "TWR (Thrust to Weight Ratio) at current location",
+    "message": "TWR (current)"
+  },
+  "TWR_CURRENT_TOOLTIP": {
+    "description": "",
+    "message": "Thrust to Weight Ratio (TWR) of the ship in its current location.\nIf the TWR is below 1.0, the ship will not be able to take off."
+  },
+  "TWR_TARGET": {
+    "description": "TWR (Thrust to Weight Ratio) at target nav location",
+    "message": "TWR (target)"
+  },
+  "TWR_TARGET_TOOLTIP": {
+    "description": "",
+    "message": "Thrust to Weight Ratio (TWR) of the ship at the target location.\nIf the TWR is below 1.0, the ship will not be able to take off."
+  },
   "TYPE": {
     "description": "",
     "message": "Typ"
@@ -2761,7 +2805,7 @@
   },
   "UNOCCUPIED_PASSENGER_CABINS": {
     "description": "",
-    "message": "Wolne kabiny pasażerskie"
+    "message": "Unoccupied passenger berths"
   },
   "UNPROFITABLE_TRADE": {
     "description": "Indicates an unprofitable trade route.",
@@ -2779,9 +2823,13 @@
     "description": "",
     "message": "Przyspieszenie w górę"
   },
-  "USED": {
+  "UP_ACCEL_EMPTY": {
     "description": "",
-    "message": "Użyte"
+    "message": "Up accel (empty)"
+  },
+  "USED": {
+    "description": "Usually shown with FREE as a pair, e.g. 4t used / 7t free",
+    "message": "used"
   },
   "VERY_HIGH": {
     "description": "Game settings option: graphic resolution",

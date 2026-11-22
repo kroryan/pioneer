@@ -34,6 +34,7 @@
 #include "SectorView.h"
 #include "Sfx.h"
 #include "Shields.h"
+#include "ShipGroundShadow.h"
 #include "ShipType.h"
 #include "Space.h"
 #include "SpaceStation.h"
@@ -400,6 +401,10 @@ void Pi::App::OnStartup()
 
 	QueueLifecycle(m_loader);
 
+	// Headless mode skips the normal startup screen, so initialize sound here.
+	if (m_noGui)
+		Sound::Init(Pi::config->String("AudioBackend"));
+
 	// Don't start the main menu if we don't have a GUI
 	if (!m_noGui)
 		QueueLifecycle(m_mainMenu);
@@ -438,6 +443,7 @@ void Pi::App::OnShutdown()
 	NavLights::Uninit();
 	Shields::Uninit();
 	SfxManager::Uninit();
+	ShipGroundShadow::Uninit();
 	Sound::Uninit();
 	CityOnPlanet::Uninit();
 	BaseSphere::Uninit();
@@ -531,12 +537,11 @@ void StartupScreen::Start()
 	Pi::pigui->EndFrame();
 
 	AddStep("Sound::Init", []() {
-		if (Pi::GetApp()->HeadlessMode() || Pi::config->Int("DisableSound"))
-			return;
-
 		Sound::Init(Pi::config->String("AudioBackend"));
-		Pi::GetMusicPlayer().SetVolume(Pi::config->Float("MusicVolume"));
-		if (Pi::config->Int("MusicMuted")) Pi::GetMusicPlayer().SetEnabled(false);
+		if (!Pi::GetApp()->HeadlessMode() && !Pi::config->Int("DisableSound")) {
+			Pi::GetMusicPlayer().SetVolume(Pi::config->Float("MusicVolume"));
+			if (Pi::config->Int("MusicMuted")) Pi::GetMusicPlayer().SetEnabled(false);
+		}
 	});
 
 #ifdef ENABLE_SERVER_AGENT

@@ -565,7 +565,7 @@
   },
   "PROBLEM_CREW_8": {
     "description": "",
-    "message": "strasznego incydentu, który doprowadził do wystrzelenia innych w kosmos"
+    "message": "a terrible accident that led to the ejection of the others into space"
   },
   "PROBLEM_CREW_9": {
     "description": "",
@@ -729,7 +729,7 @@
   },
   "UNOCCUPIED_PASSENGER_CABINS": {
     "description": "",
-    "message": "wolne kabiny"
+    "message": "unoccupied passenger berths"
   },
   "WHERE_IS_THE_TARGET": {
     "description": "",

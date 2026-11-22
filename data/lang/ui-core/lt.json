@@ -33,7 +33,7 @@
   },
   "ALL_UP_WEIGHT": {
     "description": "",
-    "message": "All-up weight"
+    "message": "Current total weight"
   },
   "AMOUNT": {
     "description": "",
@@ -137,7 +137,7 @@
   },
   "CABINS": {
     "description": "For passengers",
-    "message": "Cabins"
+    "message": "Berths"
   },
   "CABIN_FREE": {
     "description": "Free capacity for passengers",
@@ -641,11 +641,15 @@
   },
   "EQUIPMENT_CAPACITY": {
     "description": "The equipment capacity of a ship",
-    "message": "Equipment Capacity"
+    "message": "Equipment capacity"
   },
   "EQUIPMENT_MARKET": {
     "description": "",
     "message": "Įrangos turgus"
+  },
+  "EQUIPMENT_USED": {
+    "description": "",
+    "message": "Equipment space used"
   },
   "EQUIPPED": {
     "description": "",
@@ -1271,6 +1275,14 @@
     "description": "Mass",
     "message": "Masė"
   },
+  "HUD_ORBIT_APOAPSIS": {
+    "description": "Tooltip: Current orbital apoapsis.",
+    "message": "Current orbit apoapsis"
+  },
+  "HUD_ORBIT_PERIAPSIS": {
+    "description": "Tooltip: Current orbital apoapsis.",
+    "message": "Current orbit periapsis"
+  },
   "HUD_RADAR_DISTANCE": {
     "description": "Tooltip: Current distance of the radar.",
     "message": "Active radar distance"
@@ -1338,6 +1350,10 @@
   "HUD_WARNING_IMPACT_IMMINENT": {
     "description": "Alert tooltip",
     "message": "Impact imminent"
+  },
+  "HUD_WARNING_TWR_DESTINATION": {
+    "description": "TWR (Thrust to Weight Ratio) HUD warning",
+    "message": "TWR at destination is {value}"
   },
   "HULL_DOES_NOT_REQUIRE_REPAIR": {
     "description": "",
@@ -1475,6 +1491,10 @@
     "description": "Flight State",
     "message": "Jumping"
   },
+  "JUMP_REACHABLE": {
+    "description": "Tooltip indicating the jump listed in the route planner is possible under the current ship configuration.",
+    "message": "Jump is reachable"
+  },
   "KILLS": {
     "description": "",
     "message": "Kills:"
@@ -1570,6 +1590,10 @@
   "LOCAL_ARM": {
     "description": "Arm of the Milky Way galaxy",
     "message": "Local arm"
+  },
+  "LOCAL_GRAVITY": {
+    "description": "Gravity at the ship's current location, shown in the mass/TWR widget",
+    "message": "Local gravity"
   },
   "LOCATED_N_KM_FROM_THE_CENTRE_OF_NAME": {
     "description": "",
@@ -1843,6 +1867,10 @@
     "description": "",
     "message": "Not enough {alloy} to attempt a repair"
   },
+  "NOT_ENOUGH_SPACE_FOR_EQUIPMENT": {
+    "description": "",
+    "message": "Not enough space to install this equipment"
+  },
   "NOT_SUPPORTED_ON_THIS_SHIP": {
     "description": "",
     "message": "{equipment} is not supported on this ship model"
@@ -1879,21 +1907,13 @@
     "description": "",
     "message": "{range} light years ({maxRange} max)"
   },
-  "N_OCCUPIED_PASSENGER_CABINS": {
-    "description": "",
-    "message": "{quantity} Occupied Passenger Cabins"
-  },
   "N_SHIELD_GENERATORS": {
     "description": "",
     "message": "{quantity} Shield Generators"
   },
-  "N_UNOCCUPIED_PASSENGER_CABINS": {
-    "description": "",
-    "message": "{quantity} Unoccupied Passenger Cabins"
-  },
   "OCCUPIED_PASSENGER_CABINS": {
     "description": "",
-    "message": "Occupied Passenger Cabins"
+    "message": "Occupied passenger berths"
   },
   "OFF": {
     "description": "",
@@ -1985,7 +2005,7 @@
   },
   "PASSENGER_CABIN_CAPACITY": {
     "description": "Entry for ship info",
-    "message": "Passenger cabin capacity"
+    "message": "Max passenger capacity"
   },
   "PASTE": {
     "description": "As for clipboard",
@@ -2727,6 +2747,30 @@
     "description": "",
     "message": "Turn off"
   },
+  "TWR": {
+    "description": "Short label for the current thrust-to-weight ratio readout on the flight HUD",
+    "message": "TWR"
+  },
+  "TWR_AT_SURFACE": {
+    "description": "TWR (Thrust to Weight Ratio) at planet surface",
+    "message": "TWR at surface"
+  },
+  "TWR_CURRENT": {
+    "description": "TWR (Thrust to Weight Ratio) at current location",
+    "message": "TWR (current)"
+  },
+  "TWR_CURRENT_TOOLTIP": {
+    "description": "",
+    "message": "Thrust to Weight Ratio (TWR) of the ship in its current location.\nIf the TWR is below 1.0, the ship will not be able to take off."
+  },
+  "TWR_TARGET": {
+    "description": "TWR (Thrust to Weight Ratio) at target nav location",
+    "message": "TWR (target)"
+  },
+  "TWR_TARGET_TOOLTIP": {
+    "description": "",
+    "message": "Thrust to Weight Ratio (TWR) of the ship at the target location.\nIf the TWR is below 1.0, the ship will not be able to take off."
+  },
   "TYPE": {
     "description": "",
     "message": "Tipas"
@@ -2761,7 +2805,7 @@
   },
   "UNOCCUPIED_PASSENGER_CABINS": {
     "description": "",
-    "message": "Unoccupied Passenger Cabins"
+    "message": "Unoccupied passenger berths"
   },
   "UNPROFITABLE_TRADE": {
     "description": "Indicates an unprofitable trade route.",
@@ -2779,9 +2823,13 @@
     "description": "",
     "message": "Up acceleration"
   },
-  "USED": {
+  "UP_ACCEL_EMPTY": {
     "description": "",
-    "message": "Naudojama(s)"
+    "message": "Up accel (empty)"
+  },
+  "USED": {
+    "description": "Usually shown with FREE as a pair, e.g. 4t used / 7t free",
+    "message": "used"
   },
   "VERY_HIGH": {
     "description": "Game settings option: graphic resolution",
